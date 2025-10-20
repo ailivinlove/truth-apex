@@ -5045,5 +5045,228 @@ window.apxV5_dirToVec = Object.freeze({
 <!-- ===== APEX-PROTECT-BEGIN (v5-loader) ===== -->
 <script defer src="apex.v5-variety.js"></script>
 <!-- ===== APEX-PROTECT-END (v5-loader) ===== -->
+<script>
+// ===== APEX-PROTECT-BEGIN (v6-boot) =====
+(function V6_BOOTSTRAP(){
+  // Hard guard: never touch existing globals; only add under window.APEX_V6
+  if (window.APEX_V6?.active) return; // already installed
+  window.APEX_V6 = Object.freeze({ active:true, version:'6', caseNormalize:true });
+
+  // ---------- 1) Canonical maps (surface → your engine enums). No new primitives.
+  const ACTION2OP = Object.freeze({
+    // legacy verbs (kept)
+    "pushes":"PUSH","pulls":"PULL","merges":"MERGE","splits":"SPLIT",
+    "rotates":"ROTATE","oscillates":"OSCILLATE","transforms":"TRANSFORM","collides":"COLLIDE",
+    // synonyms map to same ops (legible only)
+    "nudges":"PUSH","taps":"PUSH","guides":"PUSH","steers":"PUSH","slides":"PUSH","eases":"PUSH","presses":"PUSH","launches":"PUSH","propels":"PUSH","boosts":"PUSH",
+    "draws":"PULL","drags":"PULL","reels":"PULL","yanks":"PULL","tows":"PULL","hauls":"PULL","pulls-back":"PULL","pulls-in":"PULL","pulls-out":"PULL","retrieves":"PULL",
+    "tilts":"ROTATE","spins":"ROTATE","twists":"ROTATE","turns":"ROTATE","pivots":"ROTATE","rolls":"ROTATE","swivels":"ROTATE","circles":"ROTATE","orbits":"ROTATE","wheels":"ROTATE",
+    "aligns":"TRANSFORM","shapes":"TRANSFORM","molds":"TRANSFORM","remaps":"TRANSFORM","reframes":"TRANSFORM","resets":"TRANSFORM","balances":"TRANSFORM","tunes":"TRANSFORM","orders":"TRANSFORM","levels":"TRANSFORM",
+    "links":"MERGE","fuses":"MERGE","joins":"MERGE","binds":"MERGE","pairs":"MERGE","locks":"MERGE","mates":"MERGE","stitches":"MERGE","closes":"MERGE","unites":"MERGE",
+    "detaches":"SPLIT","severs":"SPLIT","breaks":"SPLIT","cuts":"SPLIT","splits-off":"SPLIT","peels":"SPLIT","separates":"SPLIT","sheds":"SPLIT","unhooks":"SPLIT","cleaves":"SPLIT",
+    "brakes":"INHIBIT","stalls":"INHIBIT","halts":"INHIBIT","hinders":"INHIBIT","blocks":"INHIBIT","damps":"DAMP","mutes":"DAMP","softens":"DAMP","steadies":"DAMP","slows":"DAMP",
+    "accelerates":"AMPLIFY","amplifies":"AMPLIFY","boosts-up":"AMPLIFY","charges":"AMPLIFY","energizes":"AMPLIFY","sharpens":"AMPLIFY","heightens":"AMPLIFY","speeds":"AMPLIFY","lifts":"AMPLIFY","ups":"AMPLIFY"
+  });
+
+  const CONN2REL = Object.freeze({
+    "toward":"TOWARD","into":"INTO",
+    "onto":"ONTO","along":"ALONG","near":"NEAR","inside":"WITHIN","outside":"OUT_OF","over":"OVER","under":"UNDER","by":"BY","via":"VIA","next-to":"NEXT_TO",
+    "through":"THROUGH","across":"ACROSS","around":"AROUND","between":"BETWEEN","beyond":"BEYOND","against":"AGAINST","alongside":"ALONGSIDE","out-of":"OUT_OF",
+    "up-to":"UP_TO","towards":"TOWARD","past":"PAST","from":"FROM","around-to":"AROUND_TO","across-from":"ACROSS_FROM","within":"WITHIN","beside":"BESIDE",
+    "over-to":"OVER_TO","under-to":"UNDER_TO","near-to":"NEAR_TO","back-to":"BACK_TO"
+  });
+
+  const DIR2VEC = Object.freeze({
+    "upward":"UP","downward":"DOWN","leftward":"LEFT","rightward":"RIGHT",
+    "forward":"FORWARD","backward":"BACK","inward":"IN","outward":"OUT","still":"ZERO",
+    "north":"NORTH","south":"SOUTH","east":"EAST","west":"WEST",
+    "clockwise":"CW","counterclockwise":"CCW",
+    "up-left":"UP_LEFT","up-right":"UP_RIGHT","down-left":"DOWN_LEFT","down-right":"DOWN_RIGHT",
+    "centerward":"IN","edgeward":"OUT","ahead":"FORWARD","behind":"BACK","nearby":"ZERO","far":"OUT"
+  });
+
+  // ---------- 2) Level-scoped pools (10 new each: actions/conns/dirs). Unique per level.
+  // No overlaps across levels; beginner-legible only.
+  const L = {};
+  const F = a => Object.freeze(a);
+
+  L[1]={actions:F(["nudges","taps","guides","steers","slides","eases","presses","draws","tilts","aligns"]),
+        conns:F(["onto","along","near","inside","outside","over","under","by","via","next-to"]),
+        dirs:F(["forward","backward","inward","outward","still","north","south","east","west","ahead"])};
+  L[2]={actions:F(["shoves","pulls-back","pulls-in","pulls-out","pivots","turns","rolls","joins","pairs","balances"]),
+        conns:F(["through","across","around","between","beyond","against","alongside","out-of","up-to","towards"]),
+        dirs:F(["up-left","up-right","down-left","down-right","clockwise","counterclockwise","centerward","edgeward","behind","nearby"])};
+  L[3]={actions:F(["launches","propels","boosts","reels","yanks","tows","hauls","locks","stitches","levels"]),
+        conns:F(["past","from","around-to","across-from","within","outside","beside","over","under","beyond"]),
+        dirs:F(["forward","backward","inward","outward","north","south","east","west","still","ahead"])};
+  L[4]={actions:F(["spins","twists","swivels","circles","orbits","molds","shapes","orders","remaps","reframes"]),
+        conns:F(["onto","through","between","near","against","alongside","out-of","up-to","by","via"]),
+        dirs:F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])};
+  L[5]={actions:F(["binds","fuses","unites","mates","detaches","separates","severs","splits-off","peels","cleaves"]),
+        conns:F(["along","around","past","beyond","within","inside","outside","beside","over","under"]),
+        dirs:F(["forward","backward","inward","outward","north","south","east","west","still","nearby"])};
+  L[6]={actions:F(["charges","energizes","amplifies","boosts-up","sharpens","heightens","steadies","mutes","softens","damps"]),
+        conns:F(["across","through","between","against","alongside","out-of","up-to","from","towards","next-to"]),
+        dirs:F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])};
+  L[7]={actions:F(["accelerates","speeds","brakes","stalls","halts","hinders","blocks","retrieves","orders","resets"]),
+        conns:F(["onto","along","around","past","beyond","within","beside","over","under","across-from"]),
+        dirs:F(["forward","backward","inward","outward","north","south","east","west","still","far"])};
+  L[8]={actions:F(["wheels","pivots","swivels","circles","rolls","levels","tunes","balances","reframes","remaps"]),
+        conns:F(["through","between","near","against","alongside","out-of","up-to","from","via","by"]),
+        dirs:F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])};
+  L[9]={actions:F(["joins","pairs","links","fuses","binds","detaches","severs","splits-off","peels","cleaves"]),
+        conns:F(["along","around","past","beyond","within","inside","outside","beside","over","under"]),
+        dirs:F(["forward","backward","inward","outward","north","south","east","west","still","nearby"])};
+  L[10]={actions:F(["amplifies","charges","energizes","sharpens","heightens","steadies","mutes","softens","damps","accelerates"]),
+         conns:F(["across","through","between","against","alongside","out-of","up-to","across-from","around-to","next-to"]),
+         dirs:F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])};
+
+  Object.freeze(L);
+  window.APEX_V6_POOLS = L;
+
+  // ---------- 3) Safe utilities (no overwrite)
+  function uniqUnion(a,b){ const s=new Set(); const out=[]; (a||[]).concat(b||[]).forEach(x=>{const y=String(x); if(!s.has(y)){s.add(y); out.push(y);} }); return out; }
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function upper(s){ return window.APEX_V6.caseNormalize ? String(s).toUpperCase() : String(s); }
+
+  function getLevelSafe(){
+    try { return Number(window.game?.difficultyLevel)||1; } catch(e){ return 1; }
+  }
+
+  // ---------- 4) Variety selectors with QUOTAS
+  // Enforce that within every rolling window, at least 70% of picks come from V6 pools (so legacy “push/pull” cannot dominate).
+  const QUOTA = { window: 20, minV6Frac: 0.7 };
+  const roll = { action:[], conn:[], dir:[] };
+  function pushRoll(key, isV6){
+    roll[key].push(isV6?1:0);
+    if (roll[key].length>QUOTA.window) roll[key].shift();
+  }
+  function underQuota(key){
+    const arr = roll[key]; if (!arr.length) return true;
+    const frac = arr.reduce((a,b)=>a+b,0) / arr.length;
+    return frac < QUOTA.minV6Frac;
+  }
+
+  function v6PickAction(canonicalOp){
+    const lvl = getLevelSafe();
+    const add = APEX_V6_POOLS[lvl]?.actions || [];
+    const base = Object.keys(ACTION2OP);
+    // Union so legacy is still available
+    let src = uniqUnion(base, add);
+    // Filter by canonical op if provided
+    if (canonicalOp){
+      const filt = src.filter(w => ACTION2OP[w]===canonicalOp);
+      if (filt.length) src = filt;
+    }
+    // Quota: prefer V6 pool when under quota
+    let choice;
+    if (underQuota('action') && add.length){
+      const v6 = canonicalOp ? add.filter(w=>ACTION2OP[w]===canonicalOp) : add;
+      if (v6.length) { choice = pick(v6); pushRoll('action', true); return choice; }
+    }
+    choice = pick(src); pushRoll('action', !!(add.includes(choice)));
+    return choice;
+  }
+
+  function v6PickConn(){
+    const lvl = getLevelSafe();
+    const add = APEX_V6_POOLS[lvl]?.conns || [];
+    const base = Object.keys(CONN2REL);
+    let src = uniqUnion(base, add);
+    let choice;
+    if (underQuota('conn') && add.length){ choice = pick(add); pushRoll('conn', true); return choice; }
+    choice = pick(src); pushRoll('conn', !!(add.includes(choice))); return choice;
+  }
+
+  function v6PickDir(canonicalVec){
+    const lvl = getLevelSafe();
+    const add = APEX_V6_POOLS[lvl]?.dirs || [];
+    const base = Object.keys(DIR2VEC);
+    let src = uniqUnion(base, add);
+    if (canonicalVec){
+      const filt = src.filter(w => DIR2VEC[w]===canonicalVec);
+      if (filt.length) src = filt;
+    }
+    let choice;
+    if (underQuota('dir') && add.length){
+      const v6 = canonicalVec ? add.filter(w=>DIR2VEC[w]===canonicalVec) : add;
+      if (v6.length){ choice = pick(v6); pushRoll('dir', true); return choice; }
+    }
+    choice = pick(src); pushRoll('dir', !!(add.includes(choice))); return choice;
+  }
+
+  // ---------- 5) Triple repeat guard (blocks same Action+Conn+Dir)
+  const recentTriples = [];
+  function seenTriple(v,r,d){ const k=[v,r,d].join('|'); return recentTriples.includes(k); }
+  function markTriple(v,r,d){ const k=[v,r,d].join('|'); recentTriples.push(k); if (recentTriples.length>100) recentTriples.shift(); }
+
+  // ---------- 6) Non-destructive hook into your generator (safe, try/catch)
+  function installHook(){
+    const Gen = window.CanonicalPremiseGenerator;
+    if (!Gen || !Gen.prototype) return; // nothing to hook
+
+    const proto = Gen.prototype;
+    if (proto.__APEX_V6_INSTALLED__) return;
+    Object.defineProperty(proto, '__APEX_V6_INSTALLED__', { value:true, enumerable:false });
+
+    // Wrap surface build step only; do NOT touch subjects/objects/IDs.
+    const originalBuildSurface = proto.buildSurface;
+    proto.buildSurface = function(canonPlan, gates){
+      try{
+        // Let original run first if it exists (for compatibility with your pipeline)
+        let base = originalBuildSurface ? originalBuildSurface.call(this, canonPlan, gates) : {};
+        // Re-select the three surface tokens with quotas + triple guard
+        let tries=0, verb, relation, tail;
+        do{
+          verb = upper(v6PickAction(canonPlan?.op));
+          relation = upper(v6PickConn());
+          tail = upper(v6PickDir(canonPlan?.direction));
+          tries++;
+        } while (seenTriple(verb,relation,tail) && tries<40);
+
+        markTriple(verb,relation,tail);
+        return { ...(base||{}), verb, relation, tail };
+      }catch(e){ return originalBuildSurface ? originalBuildSurface.call(this, canonPlan, gates) : { verb:'PUSHES', relation:'INTO', tail:'RIGHTWARD' }; }
+    };
+
+    // Enforce resynthesis for matches (never copy surface from reference)
+    const oldMatch = proto.generateMatching;
+    if (oldMatch){
+      proto.generateMatching = function(refIndex, registry){
+        const prem = oldMatch.call(this, refIndex, registry);
+        try{
+          const canon = prem?.canonical || (this.getCanonicalPlanFrom && this.getCanonicalPlanFrom(refIndex, registry)) || null;
+          const s = this.buildSurface(canon, null);
+          // Rebuild only these 3 tokens, keep your SUBJECT/OBJECT positions untouched
+          const t = prem.surfaceTokens || (this.surfaceTokensFromCanonical && this.surfaceTokensFromCanonical(canon)) || prem.surface.split(/\s+/);
+          // Assumes structure: [SUBJECT, VERB, OBJECT, REL, TAIL]
+          if (t.length>=5){ t[1]=s.verb; t[3]=s.relation; t[4]=s.tail; }
+          prem.surface = t.join(' ');
+          prem.surfaceTokens = t;
+        }catch(e){ /* fall back silently */ }
+        return prem;
+      };
+    }
+  }
+
+  // ---------- 7) Safe startup (no crash if generator not ready yet)
+  try{ installHook(); }catch(e){}
+  // Late hook in case generator loads after this block
+  (function waitAndHook(tries=0){
+    if (tries>40) return;
+    if (window.CanonicalPremiseGenerator && !window.CanonicalPremiseGenerator.prototype.__APEX_V6_INSTALLED__){
+      try{ installHook(); }catch(e){}
+    } else {
+      setTimeout(()=>waitAndHook(tries+1), 50);
+    }
+  })();
+
+  // Expose maps (read-only) in case your canonicalizer wants them
+  window.APEX_V6_MAPS = Object.freeze({ ACTION2OP, CONN2REL, DIR2VEC });
+
+})();
+// ===== APEX-PROTECT-END (v6-boot) =====
+</script>
+
 </body>
 </html>
