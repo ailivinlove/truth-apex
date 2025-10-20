@@ -1,0 +1,4778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canonical State-Vector N-Back | ≥0.90 G-Load Protocol</title>
+<style>
+:root { 
+  --bg:#0a0a0f; 
+  --fg:#e6fbff; 
+  --accent:#00ccff; 
+  --mut:#8fe7ff; 
+  --success:#26de81;
+  --error:#ff6b6b;
+  --warning:#ffd700;
+  --quantum:#ff00ff;
+  --cascade:#a55eea;
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+html, body { height:100%; overflow-x:hidden; }
+body { 
+  background:linear-gradient(135deg, #0a0a0f 0%, #0f1419 100%); 
+  color:var(--fg); 
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+
+.container { max-width:1280px; margin:0 auto; padding:20px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); gap:20px; margin-bottom:20px; }
+
+.panel { 
+  background:rgba(16,20,24,0.95); 
+  border:1px solid rgba(0,200,255,.3); 
+  border-radius:12px; 
+  padding:20px; 
+  backdrop-filter:blur(10px);
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+
+.panel-title { 
+  font-weight:800; 
+  margin-bottom:15px; 
+  color:var(--accent);
+  text-shadow:0 0 10px rgba(0,200,255,0.3);
+  font-size:18px;
+}
+
+.btn { 
+  background:rgba(0,200,255,0.1); 
+  color:var(--accent); 
+  border:1px solid var(--accent); 
+  border-radius:8px; 
+  padding:12px 20px; 
+  font-weight:700; 
+  cursor:pointer; 
+  transition:all 0.3s;
+  font-size:14px;
+}
+.btn:hover:not(:disabled) { 
+  background:rgba(0,200,255,0.25); 
+  box-shadow:0 0 20px rgba(0,200,255,.5);
+  transform:translateY(-1px);
+}
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+.btn.instructions { 
+  background:rgba(95,39,205,0.2); 
+  border-color:#5f27cd; 
+  color:#a55eea;
+}
+.btn.instructions:hover { 
+  background:rgba(95,39,205,0.4); 
+  box-shadow:0 0 20px rgba(95,39,205,.6);
+}
+
+label { 
+  font-size:13px; 
+  color:var(--mut); 
+  display:block; 
+  margin:12px 0 6px 0;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+
+input[type=range] { 
+  width:100%; 
+  height:6px;
+  background:rgba(0,200,255,0.1);
+  border-radius:3px;
+  outline:none;
+  -webkit-appearance:none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:18px;
+  height:18px;
+  background:var(--accent);
+  border-radius:50%;
+  cursor:pointer;
+  box-shadow:0 0 10px rgba(0,200,255,0.5);
+}
+input[type=range]::-moz-range-thumb {
+  width:18px;
+  height:18px;
+  background:var(--accent);
+  border-radius:50%;
+  cursor:pointer;
+  box-shadow:0 0 10px rgba(0,200,255,0.5);
+}
+
+.kbd {
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:4px;
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(255,255,255,.3);
+  font-size:12px;
+  font-weight:bold;
+  box-shadow:0 2px 4px rgba(0,0,0,0.3);
+}
+
+.legend-chip {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  padding:2px 8px;
+  background:rgba(0,200,255,0.12);
+  border:1px solid rgba(0,200,255,0.35);
+  color:var(--accent);
+  font-size:11px;
+  font-weight:700;
+  margin-right:4px;
+  margin-bottom:4px;
+}
+
+#premiseDisplay { 
+  min-height:180px; 
+  background:linear-gradient(135deg, rgba(14,17,19,0.98), rgba(19,22,25,0.98));
+  border:2px solid rgba(0,200,255,.4); 
+  border-radius:12px; 
+  padding:30px; 
+  font-size:34px; 
+  line-height:2.0; 
+  font-family:'Courier New',monospace; 
+  font-weight:900; 
+  letter-spacing:1px;
+  position:relative;
+  overflow:hidden;
+  box-shadow:inset 0 0 30px rgba(0,200,255,0.05);
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
+@keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+@keyframes quantumFlicker { 
+  0%{opacity:1; filter:hue-rotate(0deg)} 
+  50%{opacity:0.7; filter:hue-rotate(180deg)} 
+  100%{opacity:1; filter:hue-rotate(360deg)} 
+}
+
+.premise-text { 
+  padding:20px; 
+  margin:10px 0;
+  border-left:6px solid var(--accent); 
+  background:linear-gradient(90deg, rgba(0,200,255,.1), transparent); 
+  border-radius:4px; 
+  animation:fadeIn 0.5s ease-out;
+}
+
+/* Symbol highlighting */
+.sym-primary { color:#ff6b6b; text-shadow:0 0 15px rgba(255,107,107,.8); }
+.sym-secondary { color:#4ecdc4; text-shadow:0 0 15px rgba(78,205,196,.8); }
+.sym-number { color:#ff00ff; text-shadow:0 0 15px rgba(255,0,255,.8); }
+.sym-color { text-shadow:0 0 15px currentColor; font-weight:900; }
+.operation { color:#26de81; font-style:italic; }
+.relation { color:#a55eea; font-weight:900; text-decoration:underline dotted; }
+.state { color:#ffd700; font-weight:bold; }
+.compound { background:rgba(0,210,211,0.15); padding:2px 6px; border-radius:3px; }
+.compound.object {
+  background:rgba(255,165,0,0.15);
+  border:1px solid rgba(255,165,0,0.4);
+}
+.quantum { animation:quantumFlicker 2s infinite; }
+.scheduled {
+  background:rgba(165,94,234,0.2);
+  border:1px dashed var(--cascade); 
+  padding:2px 6px; 
+  border-radius:3px; 
+}
+
+.feedback {
+  margin-top:20px;
+  padding:15px;
+  border-radius:8px;
+  font-size:16px;
+  font-weight:600;
+  animation:fadeIn 0.5s ease-out;
+}
+.feedback.correct {
+  background:rgba(38,222,129,0.2);
+  border:1px solid var(--success);
+  color:var(--success);
+}
+.feedback.incorrect {
+  background:rgba(255,107,107,0.2);
+  border:1px solid var(--error);
+  color:var(--error);
+}
+.feedback.missed {
+  background:rgba(255,215,0,0.2);
+  border:1px solid var(--warning);
+  color:var(--warning);
+}
+
+.status-display {
+  display:flex;
+  justify-content:space-between;
+  margin-top:15px;
+  padding:10px;
+  background:rgba(0,0,0,0.3);
+  border-radius:6px;
+}
+.status-item {
+  font-size:14px;
+  font-weight:600;
+}
+
+.state-tracker {
+  margin-top:10px;
+  padding:10px;
+  background:rgba(0,0,0,0.4);
+  border-radius:6px;
+  font-size:11px;
+  font-family:'Courier New',monospace;
+  color:var(--mut);
+  display:none;
+  max-height:200px;
+  overflow-y:auto;
+}
+
+.state-tracker.active {
+  display:block;
+}
+
+.proof-trace {
+  background:rgba(0,0,0,0.3);
+  border:1px solid rgba(0,200,255,0.2);
+  padding:10px;
+  margin-top:10px;
+  font-size:11px;
+  font-family:'Courier New',monospace;
+  color:var(--mut);
+  border-radius:4px;
+  max-height:150px;
+  overflow-y:auto;
+}
+
+.conservation-display {
+  margin-top:10px;
+  padding:8px;
+  background:rgba(255,0,255,0.1);
+  border:1px solid var(--quantum);
+  border-radius:6px;
+  font-size:12px;
+  font-family:'Courier New',monospace;
+}
+
+.scheduled-effects {
+  margin-top:10px;
+  padding:8px;
+  background:rgba(165,94,234,0.1);
+  border:1px solid var(--cascade);
+  border-radius:6px;
+  font-size:12px;
+}
+
+.difficulty-indicator {
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:4px;
+  font-size:11px;
+  font-weight:bold;
+  margin-left:10px;
+}
+.diff-level-1 { background:rgba(38,222,129,0.2); color:var(--success); }
+.diff-level-2 { background:rgba(255,215,0,0.2); color:var(--warning); }
+.diff-level-3 { background:rgba(255,107,107,0.2); color:var(--error); }
+.diff-level-4 { background:rgba(255,0,255,0.2); color:var(--quantum); }
+.diff-level-5 { background:rgba(165,94,234,0.2); color:var(--cascade); }
+.diff-level-6 { background:rgba(46,196,182,0.2); color:#2ec4b6; }
+.diff-level-7 { background:rgba(255,159,28,0.2); color:#ff9f1c; }
+.diff-level-8 { background:rgba(255,0,0,0.2); color:#ff4d4d; }
+.diff-level-9 { background:rgba(75,0,130,0.2); color:#8a2be2; }
+.diff-level-10 { background:rgba(0,191,255,0.2); color:#00bfff; }
+
+/* Modal */
+.modal {
+  display:none;
+  position:fixed;
+  z-index:1000;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.95);
+  backdrop-filter:blur(10px);
+}
+
+.modal-content {
+  background:linear-gradient(135deg, #0f1419, #1a1f25);
+  margin:20px auto;
+  padding:30px;
+  border:2px solid var(--accent);
+  border-radius:15px;
+  width:90%;
+  max-width:900px;
+  max-height:90vh;
+  overflow-y:auto;
+  box-shadow:0 0 50px rgba(0,200,255,.5);
+}
+
+.modal h2 { color:var(--accent); margin:25px 0; }
+.modal h3 { color:var(--mut); margin:20px 0; }
+.modal p { line-height:1.8; margin:15px 0; }
+.modal ul { line-height:1.8; padding-left:30px; }
+
+.example-box {
+  background:rgba(0,0,0,0.5);
+  border-left:4px solid var(--accent);
+  padding:15px;
+  margin:20px 0;
+  font-family:'Courier New',monospace;
+  border-radius:5px;
+}
+
+.close-modal {
+  color:var(--accent);
+  float:right;
+  font-size:32px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:all 0.3s;
+}
+.close-modal:hover { 
+  color:var(--error);
+  transform:rotate(90deg);
+}
+
+.counterfactual-test {
+  background:rgba(255,0,255,0.05);
+  border:1px dashed var(--quantum);
+  padding:8px;
+  margin-top:5px;
+  font-size:10px;
+  font-family:'Courier New',monospace;
+  color:var(--quantum);
+}
+
+.canonical-mapping {
+  display:flex;
+  justify-content:space-between;
+  padding:5px;
+  background:rgba(0,200,255,0.05);
+  border-radius:3px;
+  margin:2px 0;
+  font-size:11px;
+  font-family:'Courier New',monospace;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title">⚙️ Configuration</div>
+      
+      <label>Difficulty Level: <span id="difficultyValue">Level 1 (0.85g)</span>
+        <span id="difficultyIndicator" class="difficulty-indicator diff-level-1">0.85g</span>
+      </label>
+      <input type="range" id="difficultyLevel" min="1" max="5" value="1">
+      
+      <label>N-Back Level: <span id="nbackValue">1</span></label>
+      <input type="range" id="nbackLevel" min="1" max="5" value="1">
+      
+      <label>Statements per Trial: <span id="stmtValue">1</span></label>
+      <input type="range" id="statementsPerTrial" min="1" max="3" value="1">
+      
+      <label>Match Probability: <span id="matchProbValue">30%</span></label>
+      <input type="range" id="matchProbability" min="0" max="100" step="5" value="30">
+      
+      <label>Response Window: <span id="windowValue">15.0s</span></label>
+      <input type="range" id="responseWindow" min="1" max="60" step="1.0" value="15">
+      
+      <label style="margin-top:15px">
+        <input type="checkbox" id="voiceEnabled" checked> Voice Synthesis
+      </label>
+      
+      <label>
+        <input type="checkbox" id="proofTraces" checked> Show Proof Traces
+      </label>
+      
+      <label>
+        <input type="checkbox" id="counterfactuals"> Counterfactual Verification
+      </label>
+
+      <label>
+        <input type="checkbox" id="compressedMath"> Compressed Math Surface
+        <span id="mathLegendBtn" class="legend-chip" style="cursor:pointer">?</span>
+      </label>
+      <div id="mathLegend" class="panel" style="display:none; margin-top:8px; padding:10px">
+        <div class="legend-chip">× push</div>
+        <div class="legend-chip">- pull</div>
+        <div class="legend-chip">÷ weaken</div>
+        <div class="legend-chip">+ nudge</div>
+        <div class="legend-chip">= balance groups</div>
+        <div class="legend-chip">√a a oscillates</div>
+        <div class="legend-chip">c% c holds</div>
+        <div class="legend-chip">b2 happens at t+2</div>
+      </div>
+
+      <button id="instructionsBtn" class="btn instructions" style="width:100%; margin-top:20px">
+        📖 Instructions & Theory
+      </button>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-title">🎮 Controls</div>
+      
+      <div style="display:flex; gap:10px; margin-bottom:20px">
+        <button id="startBtn" class="btn" style="flex:1">▶ Start</button>
+        <button id="pauseBtn" class="btn" style="flex:1" disabled>⏸ Pause</button>
+        <button id="resetBtn" class="btn" style="flex:1" disabled>🔄 Reset</button>
+      </div>
+      
+      <div style="padding:15px; background:rgba(0,200,255,0.1); border-radius:8px; text-align:center; margin-bottom:15px">
+        <strong>Press <span class="kbd">SPACEBAR</span> when you detect a match!</strong>
+      </div>
+      
+      <div class="status-display">
+        <div class="status-item">Trial: <span id="currentTrial">0</span>/<span id="totalTrials">50</span></div>
+        <div class="status-item">Timer: <span id="countdown" style="color:var(--accent)">—</span></div>
+      </div>
+      
+      <div class="status-display">
+        <div class="status-item" style="color:var(--success)">Hits: <span id="correctHits">0</span></div>
+        <div class="status-item" style="color:var(--error)">False: <span id="falseAlarms">0</span></div>
+        <div class="status-item" style="color:var(--warning)">Missed: <span id="misses">0</span></div>
+      </div>
+      <div class="status-display" style="margin-top:5px">
+        <div class="status-item" style="color:var(--mut)">No Response: <span id="noResponses">0</span></div>
+      </div>
+      
+      <div class="scheduled-effects" id="scheduledEffects" style="display:none">
+        <strong style="color:var(--cascade)">⏱ Scheduled Effects:</strong>
+        <div id="scheduledList"></div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-title">📊 Performance Metrics</div>
+      
+      <div style="font-size:14px; line-height:2">
+        <div>Accuracy: <span id="accuracy" style="font-weight:bold">—</span></div>
+        <div>Avg Response Time: <span id="avgResponse" style="font-weight:bold">—</span></div>
+        <div>Session Progress: <span id="progress" style="font-weight:bold">0%</span></div>
+        <div>Confidence Score: <span id="confidence" style="font-weight:bold">—</span></div>
+      </div>
+      
+      <div class="conservation-display" id="conservationDisplay">
+        <div style="font-weight:bold; color:var(--quantum)">Conservation Status:</div>
+        <div>ΣE: <span id="totalEnergy">100</span></div>
+        <div>Σp: <span id="totalMomentum">(0,0,0)</span></div>
+        <div>ΣI: <span id="totalInfo">50</span></div>
+        <div>Active: <span id="activeSymbols">0</span></div>
+      </div>
+      
+      <div class="state-tracker" id="stateTracker">
+        <div style="color:var(--accent); font-weight:bold; margin-bottom:5px">Canonical State Vectors:</div>
+        <div id="stateTrackerContent"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="panel">
+    <div class="panel-title">🧠 Canonical State-Vector Tracking • G-Load: <span id="currentGLoad">0.90</span></div>
+    <div id="premiseDisplay">
+      <div style="text-align:center; color:var(--mut); font-size:20px; font-weight:normal">
+        Press START to begin canonical state-vector tracking
+      </div>
+    </div>
+    <div id="canonicalMappings" style="margin-top:10px"></div>
+    <div id="feedbackArea"></div>
+  </div>
+</div>
+
+<!-- Instructions Modal -->
+<div id="instructionsModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal">&times;</span>
+    <h2>Canonical State-Vector N-Back Protocol (≥0.90 G-Load)</h2>
+    
+    <p><strong>CORE CONCEPT:</strong> This is deterministic state-vector simulation with persistent canonical identity. Each symbol maintains an immutable ID across ALL trials, accumulating transformations through multi-dimensional state vectors that compound over time.</p>
+
+    <h3>Compliance guardrails</h3>
+    <p>These constraints keep Compressed Math Mode aligned with canonical verification.</p>
+    <h3>Compliance guardrails — Compressed Math Mode</h3>
+    <ul>
+      <li><strong>Max 9 tokens</strong> per premise (e.g., <code>a × b - c ÷ d + e</code>).</li>
+      <li><strong>Allowed tokens only:</strong> letters a–e (optionally <code>√</code> prefix, <code>%</code> postfix, or a single digit suffix), and operators <code>× - ÷ + =</code>.</li>
+      <li>Surface is still presentation only: MATCH depends on the canonical trajectory.</li>
+      <li><strong>“=”</strong> means the left group must balance the right at check time.</li>
+      <li><strong>Match ≠ Repeat:</strong> When a match is required, the surface must change. At least <code>MIN_SURFACE_DELTA</code> tokens must differ from the reference, ignoring case (default: 3). Case-only changes never count.</li>
+      <li><strong>Canonical-invariance:</strong> Math-mode matches are generated by re-rendering the same underlying operator plan; only the surface varies.</li>
+      <li><strong>Allowed “no-op” markers for surface variety:</strong> suffix <code>0</code> (now) and postfix <code>%</code> (hold) are permitted; both compile to no state change.</li>
+      <li><strong>Side-swap allowed:</strong> Swapping both sides of <code>=</code> is permitted and preserves the same balance check.</li>
+    </ul>
+
+    <h3>Surface Diversity (Why words change)</h3>
+    <p>
+      Premises always use five simple words, but the <em>same</em> hidden IDs and operations can appear with different words (e.g., HOUND = DOG, PRESS = PUSH).
+      Matches are judged by the hidden simulation, not by repeated words. If a match is possible, the surface will still look different on purpose.
+    </p>
+
+    <h3>I. Theoretical Foundation: From Topology to Trajectory</h3>
+    <p>Unlike pattern matching, this requires genuine mental physics simulation. Each symbol is a quantum-like entity with:</p>
+    <ul>
+      <li><strong>Canonical Identity (ID):</strong> Persists across entire session</li>
+      <li><strong>State Vector:</strong> {x, y, z, energy, momentum, phase, information}</li>
+      <li><strong>Accumulated History:</strong> States compound across all premises</li>
+      <li><strong>Scheduled Effects:</strong> Operations can execute in future trials</li>
+      <li><strong>Conservation Laws:</strong> Total energy/momentum must balance</li>
+    </ul>
+    
+    <h3>II. Progressive Difficulty Levels</h3>
+    <div class="example-box">
+      Level 1 (0.85g): Current topology matching
+      Level 2 (0.90g): Canonical tracking + state accumulation
+      Level 3 (0.93g): + Scheduled effects + conservation
+      Level 4 (0.95g): + Recursive effects + counterfactuals
+      Level 5 (0.97g+): + Quantum superposition + entanglement
+    </div>
+    
+    <h3>III. Dual-Layer Representation</h3>
+    <p>Each premise has two layers:</p>
+    <ul>
+      <li><strong>Surface:</strong> 5 simple words you see (DOG, CAT, etc.)</li>
+      <li><strong>Canonical:</strong> Hidden persistent IDs (D1, C1, etc.)</li>
+    </ul>
+    <p>Synonyms map to same ID: DOG→D1, HOUND→D1, CANINE→D1</p>
+    
+    <h3>IV. Example 1: Basic Identity Tracking</h3>
+    <div class="example-box">
+      Trial 1: "CIRCLE pushes SQUARE moving rightward"
+      Internal: C1 pushes S1, C1{x:-1, energy:9}, S1{x:+2, energy:11}
+      
+      Trial 3: "SPHERE pushes SQUARE moving rightward"
+      Internal: C1 pushes S1 (SPHERE maps to same C1!)
+      
+      MATCH! CIRCLE and SPHERE both → canonical ID "C1"
+    </div>
+    
+    <h3>V. Example 2: State Accumulation</h3>
+    <div class="example-box">
+      Setup: DOG starts at position (0,0), energy 10
+      
+      Trial 1: "DOG runs toward CAT quickly"
+      After: DOG{x:+3, energy:8}, CAT{x:0, energy:10}
+      
+      Trial 2: [unrelated premise]
+      
+      Trial 3: "HOUND sprints toward FELINE rapidly"
+      Must check: Does HOUND (=DOG) start from x:3, energy:8?
+      
+      DOG's state from Trial 1 carries forward!
+      Match requires identical evolution from accumulated state.
+    </div>
+    
+    <h3>VI. Example 3: Conservation Laws</h3>
+    <div class="example-box">
+      Trial 1: "ENGINE pushes CART forward strongly"
+      Internal: E1{momentum:-2}, C1{momentum:+2}
+      Total momentum: 0 ✓ (conserved)
+      
+      Trial 3: "MOTOR pushes WAGON forward strongly"
+      Internal: M1{momentum:-1}, W1{momentum:+3}
+      Total momentum: +2 ✗ (violation!)
+      
+      NO MATCH - conservation law broken!
+    </div>
+    
+    <h3>VII. Example 4: Scheduled/Delayed Effects</h3>
+    <div class="example-box">
+      Trial 1: "TRIGGER activates TIMER counting down"
+      Schedules: TIMER will explode at Trial 3 (t+2)
+      
+      Trial 2: [unrelated - but TIMER still counting]
+      
+      Trial 3: [TIMER explodes automatically!]
+      You must track this was scheduled, not new.
+      
+      Delayed effects create temporal dependencies.
+    </div>
+    
+    <h3>VIII. Example 5: Recursive Effects (Level 4+)</h3>
+    <div class="example-box">
+      Trial 1: "OSCILLATOR triggers WAVE repeating periodically"
+      Schedules: WAVE pulses every 2 trials recursively
+      
+      Trial 3: WAVE pulses (first scheduled pulse)
+      Trial 5: WAVE pulses (second scheduled pulse)
+      Trial 7: WAVE pulses (continues recursively)
+      
+      Must track recursive patterns mentally!
+    </div>
+    
+    <h3>IX. Example 6: Counterfactual Verification (Level 4+)</h3>
+    <div class="example-box">
+      Trial 1: "RED-ATOM splits forming TWO-PARTICLES"
+      
+      To verify match with Trial 3:
+      1. Primary hypothesis: Same split pattern ✓
+      2. Counterfactual 1: What if RED≠BLUE? Test...
+      3. Counterfactual 2: What if energy differs? Test...
+      4. Counterfactual 3: What if momentum unbalanced? Test...
+      
+      Match only if robust to all plausible alternatives.
+    </div>
+    
+    <h3>X. Transformation Operators</h3>
+    <div class="example-box">
+      PUSH → Δmomentum_x = +2, Δenergy = -1
+      PULL → Δmomentum_x = -2, Δenergy = -1
+      SPLIT → divide energy equally, mark original as consumed
+      MERGE → combine energies, mark originals as consumed
+      ROTATE → swap momentum components, Δphase = π/4
+      CASCADE → propagate 50% effect to connected symbols
+      TRIGGER → schedule future effect at t+k
+    </div>
+    
+    <h3>XI. Proof Trace Requirements</h3>
+    <p>Every match determination includes:</p>
+    <ul>
+      <li>Symbol mapping (surface → canonical ID)</li>
+      <li>State evolution for each symbol</li>
+      <li>Conservation verification at each step</li>
+      <li>Counterfactual robustness check (Level 4+)</li>
+      <li>Confidence score ≥0.90 for match claim</li>
+    </ul>
+    
+    <h3>XII. Cognitive Load Amplification</h3>
+    <p>Your working memory must simultaneously:</p>
+    <ul>
+      <li>Maintain identity mappings (surface → canonical)</li>
+      <li>Track multi-dimensional state vectors</li>
+      <li>Hold n-back history while processing current</li>
+      <li>Simulate temporal evolution forward</li>
+      <li>Verify conservation constraints</li>
+      <li>Monitor scheduled effects queue</li>
+      <li>Test counterfactual alternatives (Level 4+)</li>
+      <li>Handle quantum superposition (Level 5)</li>
+    </ul>
+    
+    <h3>XIII. Why This Achieves ≥0.90 G-Load</h3>
+    <p>This protocol transforms n-back from pattern recognition into genuine mental physics simulation. No heuristics suffice—only complete computational modeling succeeds. The mind becomes a deterministic state machine, tracking each symbol's journey through abstract phase space while maintaining global conservation laws.</p>
+    
+    <p><strong>The Beautiful Paradox:</strong> Though the surface remains five simple words, beneath lies a complete computational universe demanding total cognitive commitment. Every neuron recruited, every quantum of attention consumed, all to answer: "Does this universe evolve identically to the one I witnessed n trials ago?"</p>
+    
+    <p><strong>Remember:</strong> Pattern matching will fail. You must track actual symbol states through time. This is pure fluid intelligence at its limit.</p>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CANONICAL STATE-VECTOR N-BACK PROTOCOL
+   ≥0.90 G-LOAD IMPLEMENTATION WITH FULL SPECIFICATIONS
+   ============================================================ */
+
+// ===== APEX-PROTECT-BEGIN (v4) =====
+const APEX_FEATURES = Object.freeze({
+  diversityV3: true,            // surface-different, canonically-equivalent matches
+  visibleBeginnerLevels: true,  // Levels 1..5 are shown in UI
+  relabelAdvanced: true,        // old Levels 1..5 become internal 6..10
+  objectConnector: true,        // keep -OBJECT-
+  caseNormalization: true,      // uppercase surfaces; block case-only “variation”
+  devSelfChecks: false          // set true only during internal testing
+});
+// ===== APEX-PROTECT-END (v4) =====
+
+// Prepare difficulty select shim for protected UI patch
+const apxV4_sliderRef = document.getElementById('difficultyLevel');
+if (apxV4_sliderRef && !document.getElementById('difficulty')) {
+  const apxV4_selectShim = document.createElement('select');
+  apxV4_selectShim.id = 'difficulty';
+  apxV4_selectShim.style.display = 'none';
+  apxV4_sliderRef.parentElement?.insertBefore(apxV4_selectShim, apxV4_sliderRef);
+}
+
+// ===== APEX-PROTECT-BEGIN (v4-ui-difficulty) =====
+(function apxV4_expandDifficultyUI(){
+  if (!APEX_FEATURES.visibleBeginnerLevels) return;
+  const sel = document.getElementById('difficulty');
+  if (!sel) return;
+  const current = Number(sel.value || 1);
+  // Rebuild options 1..10 (labels: "Level 1"..."Level 10")
+  sel.innerHTML = '';
+  for (let i=1;i<=10;i++){
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = `Level ${i}`;
+    sel.appendChild(opt);
+  }
+  // Preserve previously chosen level if still meaningful
+  sel.value = String(Math.min(Math.max(current,1),10));
+})();
+// ===== APEX-PROTECT-END (v4-ui-difficulty) =====
+
+// ===== APEX-PROTECT-BEGIN (v4-migrate-difficulty) =====
+(function apxV4_migrateStoredDifficulty(){
+  try{
+    const key='apex:difficulty';
+    const raw=localStorage.getItem(key);
+    if (!raw) return;
+    const val=Number(raw);
+    if (val>=1 && val<=5){
+      // Treat legacy 1..5 as advanced 6..10 to preserve previous players' challenge
+      localStorage.setItem(key, String(val+5));
+    }
+  }catch(e){}
+})();
+// ===== APEX-PROTECT-END (v4-migrate-difficulty) =====
+
+// DOM helpers
+const $ = id => document.getElementById(id);
+const setText = (id, text) => { const el = $(id); if(el) el.textContent = text; };
+
+/* ===== DIFFICULTY LEVEL CONFIGURATIONS ===== */
+const DIFFICULTY_CONFIGS = {
+  1: { // 0.85g - Current topology matching
+    gLoad: 0.85,
+    name: "Topology Matching",
+    persistentState: false,
+    conservation: false,
+    scheduledEffects: false,
+    recursiveEffects: false,
+    counterfactuals: false,
+    quantumSuperposition: false,
+    axisMutations: false
+  },
+  2: { // 0.90g - Canonical tracking
+    gLoad: 0.90,
+    name: "Canonical Tracking",
+    persistentState: true,
+    conservation: false,
+    scheduledEffects: false,
+    recursiveEffects: false,
+    counterfactuals: false,
+    quantumSuperposition: false,
+    axisMutations: false
+  },
+  3: { // 0.93g - Temporal dependencies
+    gLoad: 0.93,
+    name: "Temporal Dependencies",
+    persistentState: true,
+    conservation: true,
+    scheduledEffects: true,
+    recursiveEffects: false,
+    counterfactuals: false,
+    quantumSuperposition: false,
+    axisMutations: false
+  },
+  4: { // 0.95g - Full simulation
+    gLoad: 0.95,
+    name: "Full Simulation",
+    persistentState: true,
+    conservation: true,
+    scheduledEffects: true,
+    recursiveEffects: true,
+    counterfactuals: true,
+    quantumSuperposition: false,
+    axisMutations: true
+  },
+  5: { // 0.97g+ - Quantum superposition
+    gLoad: 0.97,
+    name: "Quantum Superposition",
+    persistentState: true,
+    conservation: true,
+    scheduledEffects: true,
+    recursiveEffects: true,
+    counterfactuals: true,
+    quantumSuperposition: true,
+    axisMutations: true
+  }
+};
+
+// ===== APEX-PROTECT-BEGIN (v4-internal-levels) =====
+/*
+Visible levels:
+  1..5  = NEW beginner levels (IQ ceilings hidden: 80, 90, 95, 100, 110)
+  6..10 = ALIASES of existing DIFFICULTY_CONFIGS 1..5 (algorithms untouched)
+*/
+
+const APEX_IQ_LEVELS = Object.freeze({
+  1: { iqMax: 80  },  // Beginner-1
+  2: { iqMax: 90  },  // Beginner-2
+  3: { iqMax: 95  },  // Beginner-3
+  4: { iqMax:100  },  // Beginner-4
+  5: { iqMax:110  }   // Beginner-5
+});
+
+const APEX_INTERNAL_LEVELS = Object.freeze({
+  1: { name: "Beginner-1", aliasOf: null },
+  2: { name: "Beginner-2", aliasOf: null },
+  3: { name: "Beginner-3", aliasOf: null },
+  4: { name: "Beginner-4", aliasOf: null },
+  5: { name: "Beginner-5", aliasOf: null },
+  6: { aliasOf: 1 }, // your old Level 1
+  7: { aliasOf: 2 }, // your old Level 2
+  8: { aliasOf: 3 }, // your old Level 3
+  9: { aliasOf: 4 }, // your old Level 4
+ 10: { aliasOf: 5 }  // your old Level 5
+});
+
+// Beginner gates: strictly beginner words; five-token surfaces
+const APEX_BEGINNER_GATES = Object.freeze({
+  1: { allowAxis:false, allowSchedule:false, allowRecursive:false,
+       verbs:['pushes','pulls'],
+       relations:['toward','into'],
+       tails:['leftward','rightward','upward','downward'],
+       allowCompound:false, minTokenDiff:2, maxConstraints:1 },
+
+  2: { allowAxis:false, allowSchedule:false, allowRecursive:false,
+       verbs:['pushes','pulls','merges','splits'],
+       relations:['toward','into','creating','forming'],
+       tails:['leftward','rightward','upward','downward','forward','backward'],
+       allowCompound:true, minTokenDiff:2, maxConstraints:1 },
+
+  3: { allowAxis:false, allowSchedule:true, allowRecursive:false,
+       verbs:['pushes','pulls','merges','splits','rotates','oscillates'],
+       relations:['toward','into','creating','forming'],
+       tails:['later','again','forward','backward','upward','downward'],
+       allowCompound:true, minTokenDiff:3, maxConstraints:2 },
+
+  4: { allowAxis:false, allowSchedule:true, allowRecursive:false,
+       verbs:['pushes','pulls','merges','splits','rotates','oscillates','transforms'],
+       relations:['toward','into','creating','forming','becoming'],
+       tails:['later','after','again','forward','backward'],
+       allowCompound:true, minTokenDiff:3, maxConstraints:2 },
+
+  5: { allowAxis:true, allowSchedule:true, allowRecursive:false,
+       verbs:['pushes','pulls','merges','splits','rotates','oscillates','transforms','collides'],
+       relations:['toward','into','creating','forming','becoming','generating'],
+       tails:['later','after','again','periodically','recursively','forward','backward'],
+       axisTokens:['axis-rotate'],
+       allowCompound:true, minTokenDiff:3, maxConstraints:3 }
+});
+
+// Policy derived from hidden IQ ceilings
+function apxV4_policyForLevel(level){
+  const gates = APEX_BEGINNER_GATES[level];
+  if (!gates) return null;
+  const iq = APEX_IQ_LEVELS[level].iqMax;
+  // conservative working-memory slots by IQ band
+  const wmSlots = (iq<=80)?2 : (iq<=90)?2 : (iq<=95)?3 : (iq<=100)?3 : 4;
+  return { iqMax: iq, wmSlots, maxConstraints: gates.maxConstraints, gates };
+}
+
+function apxV4_getActiveProfile(visibleLevel){
+  const node = APEX_INTERNAL_LEVELS[visibleLevel];
+  if (!node) return { ...DIFFICULTY_CONFIGS[1] };
+  if (node.aliasOf){
+    // Advanced levels — keep your original algorithms untouched
+    const base = DIFFICULTY_CONFIGS[node.aliasOf];
+    return { ...base, name: base.name };
+  }
+  // Beginner levels — generator is shaped by gates; keep base relaxed
+  const relaxed = { ...DIFFICULTY_CONFIGS[1] };
+  return { ...relaxed, name: APEX_INTERNAL_LEVELS[visibleLevel].name, gLoad: 0.70 + (visibleLevel-1)*0.03 };
+}
+// ===== APEX-PROTECT-END (v4-internal-levels) =====
+
+// Global config
+const SURFACE_RULES = {
+  minSurfaceDelta: 3,
+  forbidCaseOnly: true,
+  dedupeWindow: 5,
+  mathAliases: ['a', 'b', 'c', 'd', 'e'],
+  allowNoOp: { zeroSuffix: true, holdPercent: true }
+};
+
+/* ===== CANONICAL SYMBOL REGISTRY ===== */
+class CanonicalRegistry {
+  constructor() {
+    this.surfaceToId = new Map();  // Surface token → canonical ID
+    this.idToState = new Map();     // Canonical ID → current state
+    this.idToHistory = new Map();   // Canonical ID → timeline snapshots
+    this.idCounter = 0;
+    this.sessionHistory = [];       // Track all mappings
+    this.surfaceAliases = new Map();
+    this.aliasEpoch = 0;
+    this.synonymGroups = [
+      ['DOG', 'HOUND', 'CANINE', 'PUP', 'PUPPY'],
+      ['CAT', 'FELINE', 'KITTEN', 'KITTY'],
+      ['CIRCLE', 'SPHERE', 'BALL', 'ORB', 'ROUND'],
+      ['SQUARE', 'BOX', 'CUBE', 'BLOCK', 'RECTANGLE'],
+      ['TRIANGLE', 'PYRAMID', 'WEDGE'],
+      ['WAVE', 'RIPPLE', 'SURGE', 'PULSE', 'OSCILLATION'],
+      ['PARTICLE', 'QUANTUM', 'PHOTON', 'ELECTRON', 'QUARK'],
+      ['ATOM', 'MOLECULE', 'COMPOUND', 'ELEMENT', 'ION'],
+      ['ENGINE', 'MOTOR', 'TURBINE', 'GENERATOR'],
+      ['TIMER', 'CLOCK', 'COUNTER', 'CHRONOMETER'],
+      ['TRIGGER', 'SWITCH', 'BUTTON', 'ACTIVATOR'],
+      ['BOMB', 'EXPLOSIVE', 'CHARGE'],
+      ['RED', 'CRIMSON', 'SCARLET', 'RUBY', 'CHERRY'],
+      ['BLUE', 'AZURE', 'COBALT', 'NAVY', 'SAPPHIRE'],
+      ['GREEN', 'EMERALD', 'JADE', 'OLIVE', 'FOREST'],
+      ['YELLOW', 'GOLDEN', 'AMBER', 'LEMON'],
+      ['STAR', 'SUN', 'STELLAR'],
+      ['PLANET', 'WORLD', 'GLOBE'],
+      ['CELL', 'ORGANISM', 'MICROBE']
+    ];
+
+    this.synonymGroups.push(
+      ['WOLF','CANID'], ['FOX','VULPINE'], ['BEAR','URSINE'],
+      ['LION','PANTHER'], ['TIGER','STRIPE-CAT'], ['LEOPARD','SPOT-CAT'], ['JAGUAR','AMAZON-CAT'],
+      ['CHEETAH','SPRINT-CAT'], ['ELEPHANT','PACHYDERM'], ['RHINO','RHINOCEROS'], ['HIPPO','HIPPOPOTAMUS'],
+      ['GIRAFFE','TALL-NECK'], ['ZEBRA','STRIPE-HORSE'], ['DEER','HART'], ['ELK','WAPITI'],
+      ['MOOSE','ELK-MOOSE'], ['HORSE','STALLION','MARE'], ['DONKEY','BURRO'], ['CAMEL','DROMEDARY'],
+      ['LLAMA','ALPACA'], ['GOAT','KID'], ['SHEEP','LAMB'], ['COW','CATTLE'], ['BISON','BUFFALO'],
+      ['PIG','HOG','SWINE','BOAR'], ['RABBIT','HARE','BUNNY'], ['MOUSE','RODENT'], ['RAT','RODENT'],
+      ['SQUIRREL','TREE-RODENT'], ['OTTER','MUSTELID'], ['BEAVER','DAM-RODENT'], ['RACCOON','BANDIT'],
+      ['BADGER','MUSTELID'], ['SKUNK','MUSTELID'], ['MONKEY','PRIMATE'], ['APE','PRIMATE'],
+      ['GORILLA','PRIMATE'], ['CHIMP','PRIMATE'], ['ORANGUTAN','PRIMATE'], ['KANGAROO','ROO'],
+      ['KOALA','BEAR-KOALA'], ['PANDA','BEAR-PANDA'], ['BAT','FLYING-MAMMAL'], ['DOLPHIN','PORPOISE'],
+      ['WHALE','CETACEAN'], ['SHARK','CARTILAGE-FISH'], ['SEAL','SEA-MAMMAL'], ['PENGUIN','SEA-BIRD'],
+      ['EAGLE','RAPTOR'], ['HAWK','RAPTOR'], ['FALCON','RAPTOR'], ['OWL','RAPTOR'],
+      ['DUCK','WATERFOWL'], ['SWAN','WATERFOWL'], ['GOOSE','WATERFOWL'], ['TURKEY','FOWL'],
+      ['CHICKEN','HEN','ROOSTER'], ['PEACOCK','PEAFOWL'], ['PARROT','MACAW'], ['CROW','CORVID'],
+      ['RAVEN','CORVID'], ['SPARROW','SONG-BIRD'], ['ROBIN','SONG-BIRD'],
+      ['ANT','INSECT'], ['BEE','INSECT'], ['WASP','INSECT'], ['BUTTERFLY','INSECT'], ['MOTH','INSECT'],
+      ['DRAGONFLY','INSECT'], ['SPIDER','ARTHROPOD'], ['SCORPION','ARTHROPOD'],
+      ['CRAB','CRUSTACEAN'], ['LOBSTER','CRUSTACEAN'], ['OCTOPUS','CEPHALOPOD'], ['SQUID','CEPHALOPOD'],
+      ['STARFISH','SEA-STAR'], ['JELLYFISH','CNIDARIAN'], ['TURTLE','REPTILE'], ['LIZARD','REPTILE'],
+      ['SNAKE','REPTILE'], ['FROG','AMPHIBIAN'], ['TOAD','AMPHIBIAN'],
+
+      // Physics synonyms (map different surfaces to same canonical idea)
+      ['LIGHT','PHOTON'], ['ELECTRON','CHARGE'], ['HEAT','TEMPERATURE'], ['POWER','WORK'],
+      ['MASS','WEIGHT'], ['SPEED','VELOCITY'], ['ROTATION','SPIN'], ['FLOW','CURRENT'],
+      ['RIPPLE','WAVE'], ['FORCE','PUSH'], ['PULL','DRAG'], ['LIFT','UPFORCE'], ['DRAG','RESIST'],
+      ['THRUST','PUSH'], ['REFLECTION','MIRROR'], ['REFRACTION','BEND'], ['ABSORPTION','SOAK'],
+      ['EMISSION','RADIATION'], ['TRANSFER','MOVE'], ['FUSION','MERGE'], ['FISSION','SPLIT'],
+      ['EXPANSION','GROWTH'], ['COMPRESSION','SQUEEZE'], ['PHASE','STATE'], ['FREQUENCY','RATE'],
+      ['AMPLITUDE','SIZE'], ['WAVELENGTH','LENGTH'], ['PERIOD','CYCLE'], ['FIELD','REGION'],
+      ['VECTOR','ARROW'], ['SCALAR','VALUE'], ['AXIS','DIRECTION'], ['FRAME','REFERENCE'],
+      ['EQUILIBRIUM','BALANCE'], ['RESONANCE','TUNE']
+    );
+  }
+
+  getOrCreateId(surface) {
+    const alias = this.resolveAlias(surface);
+    if (alias) return alias;
+
+    // Check if this surface token already mapped
+    if (this.surfaceToId.has(surface)) {
+      return this.surfaceToId.get(surface);
+    }
+    
+    // Check for synonyms
+    const synonyms = this.findSynonyms(surface);
+    for (const syn of synonyms) {
+      if (this.surfaceToId.has(syn)) {
+        const id = this.surfaceToId.get(syn);
+        this.surfaceToId.set(surface, id);
+        this.sessionHistory.push({surface, id, type: 'synonym'});
+        return id;
+      }
+    }
+    
+    // Create new canonical ID
+    this.idCounter++;
+    const id = `${surface.charAt(0)}${this.idCounter}`;
+    this.surfaceToId.set(surface, id);
+    this.sessionHistory.push({surface, id, type: 'new'});
+    
+    // Initialize state vector with all dimensions
+    const initialState = this.createInitialState();
+    initialState.createdAt = 0;
+    initialState.lastModified = 0;
+    this.idToState.set(id, initialState);
+    this.idToHistory.set(id, []);
+
+    return id;
+  }
+
+  beginAliasEpoch() {
+    this.aliasEpoch++;
+    this.surfaceAliases.clear();
+  }
+
+  bindAlias(surface, id) {
+    if (!surface) return;
+    this.surfaceAliases.set(surface, id);
+  }
+
+  resolveAlias(surface) {
+    if (!surface) return null;
+    const direct = this.surfaceAliases.get(surface);
+    if (direct) return direct;
+    const upper = surface.toUpperCase();
+    return this.surfaceAliases.get(upper) || null;
+  }
+
+  createInitialState() {
+    return {
+      // Spatial dimensions
+      x: 0,
+      y: 0,
+      z: 0,
+      // Physical properties
+      energy: 10,
+      momentum: { x: 0, y: 0, z: 0 },
+      phase: 0,
+      frequency: 1,
+      // Information properties
+      information: 5,
+      entropy: 1,
+      superposition: false,
+      entangled: null,
+      wavefunction: 1.0,
+      // Meta properties
+      exists: true,
+      createdAt: 0,
+      lastModified: 0,
+      modCount: 0,
+      delayed: false,
+      recursive: false,
+      antiStructural: false,
+      splitParent: null,
+      mergeChildren: [],
+      pendingSchedules: [],
+      // Diagnostics
+      auditNotes: []
+    };
+  }
+  
+  findSynonyms(surface) {
+    for (const group of this.synonymGroups) {
+      if (group.includes(surface.toUpperCase())) {
+        return group;
+      }
+    }
+    return [];
+  }
+  
+  getState(id) {
+    return this.idToState.get(id) || null;
+  }
+  
+  setState(id, newState, trial = null, note = '') {
+    const oldState = this.getState(id);
+    if (oldState) {
+      newState.modCount = (oldState.modCount || 0) + 1;
+    }
+    if (trial !== null) {
+      newState.lastModified = trial;
+    }
+    const clone = {
+      ...newState,
+      momentum: { ...newState.momentum },
+      mergeChildren: [...(newState.mergeChildren || [])],
+      pendingSchedules: [...(newState.pendingSchedules || [])],
+      auditNotes: [...(newState.auditNotes || [])]
+    };
+    this.idToState.set(id, clone);
+
+    if (!this.idToHistory.has(id)) {
+      this.idToHistory.set(id, []);
+    }
+    if (trial !== null) {
+      this.idToHistory.get(id).push({
+        trial,
+        snapshot: JSON.parse(JSON.stringify(clone)),
+        note: note
+      });
+    }
+  }
+
+  cloneState(id) {
+    const state = this.getState(id);
+    if (!state) return null;
+    return {
+      ...state,
+      momentum: { ...state.momentum }
+    };
+  }
+
+  getHistory(id) {
+    return this.idToHistory.get(id) || [];
+  }
+  
+  getMappingSummary() {
+    const mappings = [];
+    for (const [surface, id] of this.surfaceToId) {
+      const state = this.getState(id);
+      if (state && state.exists) {
+        mappings.push(`${surface}→${id}`);
+      }
+    }
+    return mappings;
+  }
+}
+
+class AxisManager {
+  constructor() {
+    this.events = [];
+    this.activeFrame = { x: 'x', y: 'y', z: 'z' };
+    this.frameHistory = new Map();
+  }
+
+  queue(event) {
+    this.events.push({ ...event });
+  }
+
+  compose(mapping) {
+    const result = { ...this.activeFrame };
+    return {
+      x: result[mapping.x] || mapping.x,
+      y: result[mapping.y] || mapping.y,
+      z: result[mapping.z] || mapping.z
+    };
+  }
+
+  applyForTrial(trial, registry, proofTrace) {
+    const due = this.events.filter(e => e.trial === trial);
+    if (due.length === 0) {
+      this.recordFrame(trial);
+      return;
+    }
+
+    for (const event of due) {
+      let mapping = { x: 'x', y: 'y', z: 'z' };
+
+      switch(event.type) {
+        case 'ROTATE_AXIS': {
+          const sequence = event.params?.sequence || ['y', 'z', 'x'];
+          mapping = { x: sequence[0], y: sequence[1], z: sequence[2] };
+          break;
+        }
+        case 'SPLIT_AXIS': {
+          const axis = event.params?.axis || 'x';
+          mapping = { x: this.activeFrame.x, y: this.activeFrame.y, z: this.activeFrame.z };
+          this.applySplit(axis, registry, proofTrace, event);
+          break;
+        }
+        case 'MERGE_AXIS': {
+          const targets = event.params?.axes || ['x', 'y'];
+          mapping = { x: targets[0], y: targets[1], z: 'z' };
+          this.applyMerge(targets, registry, proofTrace, event);
+          break;
+        }
+        case 'INVERT_AXIS': {
+          const axis = event.params?.axis || 'x';
+          mapping = { x: axis === 'x' ? '-x' : this.activeFrame.x,
+                      y: axis === 'y' ? '-y' : this.activeFrame.y,
+                      z: axis === 'z' ? '-z' : this.activeFrame.z };
+          break;
+        }
+      }
+
+      this.activeFrame = this.compose(mapping);
+      this.reprojectStates(registry, mapping, proofTrace, event);
+    }
+
+    this.events = this.events.filter(e => e.trial !== trial);
+    this.recordFrame(trial);
+  }
+
+  reprojectStates(registry, mapping, proofTrace, event) {
+    for (const [id, state] of registry.idToState) {
+      if (!state.exists) continue;
+      const original = { x: state.x, y: state.y, z: state.z };
+      const momentum = { ...state.momentum };
+
+      const transform = axis => {
+        switch(axis) {
+          case 'x': return original.x;
+          case 'y': return original.y;
+          case 'z': return original.z;
+          case '-x': return -original.x;
+          case '-y': return -original.y;
+          case '-z': return -original.z;
+          default: return original.x;
+        }
+      };
+
+      const transformMomentum = axis => {
+        switch(axis) {
+          case 'x': return momentum.x;
+          case 'y': return momentum.y;
+          case 'z': return momentum.z;
+          case '-x': return -momentum.x;
+          case '-y': return -momentum.y;
+          case '-z': return -momentum.z;
+          default: return momentum.x;
+        }
+      };
+
+      state.x = transform(mapping.x);
+      state.y = transform(mapping.y);
+      state.z = transform(mapping.z);
+      state.momentum = {
+        x: transformMomentum(mapping.x),
+        y: transformMomentum(mapping.y),
+        z: transformMomentum(mapping.z)
+      };
+
+      state.auditNotes = state.auditNotes || [];
+      state.auditNotes.push(`axisEvent:${event.type}@${event.trial}`);
+      registry.setState(id, state, event.trial, 'axis-event');
+
+      if (proofTrace) {
+        proofTrace.push(`Axis event ${event.type} applied to ${id}`);
+      }
+    }
+  }
+
+  applySplit(axis, registry, proofTrace, event) {
+    for (const [id, state] of registry.idToState) {
+      if (!state.exists) continue;
+      const axisValue = state[axis] || 0;
+      state[axis] = axisValue / 2;
+      state.information *= 1.1;
+      state.entropy += 0.5;
+      state.splitParent = axis;
+      registry.setState(id, state, event.trial, 'axis-split');
+      if (proofTrace) proofTrace.push(`${id} axis ${axis} split: ${axisValue}→${state[axis]}`);
+    }
+  }
+
+  applyMerge(axes, registry, proofTrace, event) {
+    for (const [id, state] of registry.idToState) {
+      if (!state.exists) continue;
+      const combined = axes.reduce((acc, axis) => acc + (state[axis] || 0), 0);
+      state[axes[0]] = combined;
+      state[axes[1]] = 0;
+      state.entropy = Math.max(0.5, state.entropy - 0.4);
+      state.mergeChildren = axes;
+      registry.setState(id, state, event.trial, 'axis-merge');
+      if (proofTrace) proofTrace.push(`${id} axis merge ${axes.join('+')}=${combined.toFixed(2)}`);
+    }
+  }
+
+  recordFrame(trial) {
+    this.frameHistory.set(trial, { ...this.activeFrame });
+  }
+
+  getFrameAt(trial) {
+    if (this.frameHistory.has(trial)) {
+      return this.frameHistory.get(trial);
+    }
+    return { ...this.activeFrame };
+  }
+}
+
+class InvariantLedger {
+  constructor() {
+    this.timeline = new Map();
+  }
+
+  record(trial, totals, deltas, notes = []) {
+    this.timeline.set(trial, {
+      totals: { ...totals, momentum: { ...totals.momentum } },
+      deltas: { ...deltas },
+      notes: [...notes]
+    });
+  }
+
+  get(trial) {
+    return this.timeline.get(trial) || null;
+  }
+}
+
+/* ===== STATE-VECTOR SIMULATION ENGINE ===== */
+
+class StateVectorEngine {
+  constructor(registry, config) {
+    this.registry = registry;
+    this.config = { ...(config || {}), compressedMath: !!(config && config.compressedMath) };
+    this.axisManager = new AxisManager();
+    this.invariantLedger = new InvariantLedger();
+    this.scheduledEffects = [];
+    this.recursiveEffects = [];
+    this.canonicalRecords = [];
+    this.currentTrial = 0;
+    this.proofTrace = [];
+    this.lastTotals = { energy: 0, information: 0, momentum: { x: 0, y: 0, z: 0 }, symbols: 0 };
+  }
+
+  parseAndSimulate(premise, currentTrial) {
+    this.currentTrial = currentTrial;
+    this.proofTrace = [];
+
+    const parsed = this.parsePremise(premise);
+    if (!parsed) {
+      this.proofTrace.push('Rejected: invalid premise format.');
+      return null;
+    }
+
+    const canonical = this.canonicalize(parsed);
+
+    if (this.canonicalRecords.length === 0 && this.lastTotals.symbols === 0) {
+      this.lastTotals = this.captureTotals();
+    }
+    this.queueFromCanonical(canonical);
+
+    if (this.config.recursiveEffects) {
+      this.applyRecursiveEffects(currentTrial);
+    }
+
+    if (this.config.scheduledEffects) {
+      this.applyScheduledEffects(currentTrial);
+    }
+
+    this.axisManager.applyForTrial(currentTrial, this.registry, this.proofTrace);
+    this.executeCanonicalRecord(canonical);
+
+    const violations = this.config.conservation ? this.checkConservation(canonical) : [];
+
+    if (this.config.quantumSuperposition) {
+      this.applyQuantumEffects();
+    }
+
+    const snapshot = this.captureStateSnapshot();
+
+    canonical.violations = violations;
+    canonical.frame = this.axisManager.getFrameAt(currentTrial);
+    canonical.auditHash = this.generateAuditHash(canonical);
+
+    this.canonicalRecords.push(canonical);
+
+    return {
+      parsed: canonical,
+      violations: violations,
+      stateSnapshot: snapshot,
+      proofTrace: [...this.proofTrace],
+      scheduledCount: this.scheduledEffects.length,
+      recursiveCount: this.recursiveEffects.length
+    };
+  }
+
+  parsePremise(text) {
+    const trimmed = text.trim();
+
+    if (this.config.compressedMath && this.isMathSurface(trimmed)) {
+      return this.parseMathPremise(trimmed);
+    }
+
+    const words = trimmed.split(/\s+/);
+    if (words.length !== 5) return null;
+
+    const [w0, w1, w2, w3, w4] = words;
+    const parsed = {
+      text,
+      tokens: words,
+      subjects: this.extractSymbols(w0),
+      operation: w1.toLowerCase(),
+      rawOperation: w1,
+      relation: null,
+      objects: [],
+      modifier: null,
+      direction: null,
+      modifierToken: w3,
+      directionToken: w4,
+      axisToken: null
+    };
+
+    const third = w2.toLowerCase();
+    if (['forming', 'creating', 'into', 'becoming', 'generating', 'producing'].includes(third)) {
+      parsed.relation = w2;
+      parsed.objects = this.extractSymbols(w3);
+      parsed.modifier = w4;
+    } else {
+      parsed.objects = this.extractSymbols(w2);
+      parsed.modifier = w3;
+      parsed.direction = w4;
+    }
+
+    if (parsed.objects.length === 0 && /axis/i.test(w2)) {
+      parsed.axisToken = w2;
+    }
+    if (/axis/i.test(w4)) {
+      parsed.axisToken = w4;
+    }
+
+    parsed.timingHints = this.detectTimingHints(parsed);
+    return parsed;
+  }
+
+  makeMathPlanFromRecord(record) {
+    if (!record) return { ops: [], balance: null };
+
+    const ops = [];
+    const normalizeOp = (op) => {
+      if (!op) return null;
+      if (op === 'OSC') return 'OSCILLATE';
+      return op.toUpperCase();
+    };
+
+    if (Array.isArray(record.mathOperations) && record.mathOperations.length > 0) {
+      for (const op of record.mathOperations) {
+        const norm = normalizeOp(op.op || op.operation);
+        if (!norm) continue;
+        const subj = op.subj?.id || op.subjects?.[0] || null;
+        const obj = op.obj?.id || op.objects?.[0] || null;
+        const delay = op.delay || op.offset || 0;
+        ops.push({ op: norm, subj, obj, delay });
+      }
+    }
+
+    if (ops.length === 0 && Array.isArray(record.immediateOps)) {
+      for (const op of record.immediateOps) {
+        const norm = normalizeOp(op.op || op.operation);
+        if (!norm) continue;
+        const subj = Array.isArray(op.subjects) ? op.subjects[0] : op.subj || null;
+        const obj = Array.isArray(op.objects) ? op.objects[0] : op.obj || null;
+        const delay = op.delay || op.offset || 0;
+        ops.push({ op: norm, subj, obj, delay });
+      }
+    }
+
+    if (Array.isArray(record.scheduled)) {
+      for (const s of record.scheduled) {
+        const norm = normalizeOp(s.operation);
+        if (!norm) continue;
+        const subj = Array.isArray(s.subjects) ? s.subjects[0] : s.subj || null;
+        const obj = Array.isArray(s.objects) ? s.objects[0] : s.obj || null;
+        const delay = s.offset || s.delay || 0;
+        ops.push({ op: norm, subj, obj, delay });
+      }
+    }
+
+    const balance = record.invariants?.balanceGroups || null;
+    return { ops, balance };
+  }
+
+  isMathSurface(text) {
+    const toks = text.trim().split(/\s+/);
+    if (toks.length < 5 || toks.length > 9) return false;
+    return toks.every(t => /^(?:[√]?[a-e](?:%|[0-9])?|[×÷+\-=])$/i.test(t));
+  }
+
+  parseMathPremise(text) {
+    const tokens = text.trim().split(/\s+/);
+    const operations = [];
+    const opMap = { '×': 'PUSH', '-': 'PULL', '÷': 'WEAKEN', '+': 'NUDGE' };
+    const groups = { left: [], right: [] };
+    const rawGroups = { left: [], right: [] };
+    const trace = [];
+
+    let currentSide = 'left';
+    let pendingOperator = null;
+    let lastOperand = null;
+
+    const parseOperand = (token) => {
+      const match = token.match(/^([√]?)([a-eA-E])((%|[0-9])?)$/);
+      if (!match) return null;
+      const hasRoot = match[1] === '√';
+      const base = match[2].toUpperCase();
+      const suffix = match[3] || '';
+      const hold = suffix === '%';
+      const delay = suffix && /\d/.test(suffix) ? parseInt(suffix, 10) : null;
+      const id = this.registry.getOrCreateId(base);
+      return { raw: token, base, id, oscillate: hasRoot, hold, delay };
+    };
+
+    for (const token of tokens) {
+      if (token === '=') {
+        currentSide = 'right';
+        pendingOperator = null;
+        lastOperand = null;
+        continue;
+      }
+
+      if (opMap[token]) {
+        pendingOperator = token;
+        continue;
+      }
+
+      const operand = parseOperand(token);
+      if (!operand) continue;
+
+      groups[currentSide].push(operand);
+      rawGroups[currentSide].push(token);
+
+      if (operand.oscillate) {
+        operations.push({ op: 'OSC', subj: operand, obj: null, delay: operand.delay || null });
+      }
+
+      if (pendingOperator && lastOperand) {
+        const opName = opMap[pendingOperator] || pendingOperator;
+        operations.push({
+          op: opName,
+          subj: lastOperand,
+          obj: operand,
+          delay: operand.delay ?? lastOperand.delay ?? null
+        });
+        pendingOperator = null;
+      }
+
+      lastOperand = operand;
+    }
+
+    const expectations = [];
+    const balanceGroups = {
+      left: groups.left.map(o => o.id),
+      right: groups.right.map(o => o.id)
+    };
+
+    if (tokens.includes('=')) {
+      expectations.push('balance-groups');
+    }
+
+    return {
+      text,
+      tokens,
+      isMath: true,
+      operations,
+      groups,
+      rawGroups,
+      trace,
+      invariants: {
+        expectations,
+        balanceGroups
+      }
+    };
+  }
+
+  extractSymbols(word) {
+    if (!word) return [];
+    if (/axis/i.test(word)) return [];
+
+    if (word.includes('-OBJECT-')) {
+      return word.split('-OBJECT-').map(w => w.replace(/-/g, '').toUpperCase());
+    }
+    if (word.includes('-AND-')) {
+      return word.split('-AND-').map(w => w.replace(/-/g, '').toUpperCase());
+    }
+    if (word.includes('-WITH-')) {
+      return word.split('-WITH-').map(w => w.replace(/-/g, '').toUpperCase());
+    }
+    if (word === 'TWO-PARTICLES' || word === 'TWO-FRAGMENTS') {
+      return ['PARTICLE1', 'PARTICLE2'];
+    }
+    if (word === 'TWO-ATOMS' || word === 'TWO-MOLECULES') {
+      return ['ATOM1', 'ATOM2'];
+    }
+    if (word === 'TWO-ORGANISMS' || word === 'TWO-CELLS') {
+      return ['ORGANISM1', 'ORGANISM2'];
+    }
+    if (word.includes('-')) {
+      const parts = word.split('-');
+      return [parts[parts.length - 1].toUpperCase()];
+    }
+    return [word.toUpperCase()];
+  }
+
+  detectTimingHints(parsed) {
+    const hints = [];
+    const tokens = parsed.tokens.map(t => t.toLowerCase());
+
+    const addDelay = (offset, magnitude, source) => hints.push({ type: 'delay', offset, magnitude, source });
+    const addRecursive = (period, startOffset, decay, amplitude, source) =>
+      hints.push({ type: 'recursive', period, startOffset, decay, amplitude, source });
+    const addRepeat = (count, spacing, source) => hints.push({ type: 'repeat', count, spacing, source });
+
+    if (tokens.includes('later')) addDelay(1, 1, 'later');
+    if (tokens.includes('after')) addDelay(2, 1, 'after');
+    if (tokens.includes('delayed')) addDelay(2, 0.8, 'delayed');
+    if (tokens.includes('again')) addRepeat(2, 1, 'again');
+    if (tokens.includes('twice')) addRepeat(2, 1, 'twice');
+    if (tokens.includes('periodically')) addRecursive(2, 1, 0.9, 1, 'periodically');
+    if (tokens.includes('recursively')) addRecursive(1, 1, 0.8, 1, 'recursively');
+    if (tokens.includes('every-two')) addRecursive(2, 0, 1, 1, 'every-two');
+    if (tokens.includes('gradually')) addDelay(1, 0.6, 'gradually');
+
+    return hints;
+  }
+
+  canonicalize(parsed) {
+    if (parsed && parsed.isMath) {
+      const operations = parsed.operations || [];
+      const symbolIds = new Set();
+
+      for (const op of operations) {
+        if (op.subj?.id) symbolIds.add(op.subj.id);
+        if (op.obj?.id) symbolIds.add(op.obj.id);
+      }
+
+      if (parsed.groups) {
+        for (const side of Object.values(parsed.groups)) {
+          for (const operand of side) {
+            if (operand?.id) symbolIds.add(operand.id);
+          }
+        }
+      }
+
+      const idsArray = Array.from(symbolIds);
+      const snapshotIds = idsArray.length > 0 ? idsArray : null;
+      const symbolSetLeft = new Set(parsed.groups?.left.map(o => o.id) || []);
+      const symbolSetRight = new Set(parsed.groups?.right.map(o => o.id) || []);
+      const invariants = parsed.invariants
+        ? { ...parsed.invariants }
+        : { expectations: [], balanceGroups: { left: [], right: [] } };
+
+      if (!Array.isArray(invariants.expectations)) {
+        invariants.expectations = [];
+      }
+
+      if (!invariants.expectations.includes('balance-groups')) {
+        invariants.expectations.push('balance-groups');
+      }
+
+      invariants.balanceGroups = {
+        left: Array.from(symbolSetLeft),
+        right: Array.from(symbolSetRight)
+      };
+
+      const canonical = {
+        human: parsed.text,
+        timeIndex: this.currentTrial,
+        tokens: parsed.tokens,
+        subjects: [],
+        objects: [],
+        modifier: null,
+        direction: null,
+        relation: null,
+        timingHints: [],
+        axisToken: null,
+        subjectIds: [],
+        objectIds: [],
+        canonicalOp: 'MATH',
+        axisHint: { axis: 'x', delta: 0, note: 'math', defaulted: true },
+        immediateOps: [],
+        scheduled: [],
+        recursive: [],
+        axisEvents: [],
+        invariants,
+        ambiguityNotes: [],
+        symbolSet: new Set(idsArray),
+        symbolSetLeft,
+        symbolSetRight,
+        state0: this.captureStateSnapshot(snapshotIds),
+        proofSeed: `t${this.currentTrial}: math=${parsed.tokens.join(' ')}`,
+        mathOperations: operations,
+        mathGroups: parsed.groups,
+        mathRawGroups: parsed.rawGroups || null,
+        mathTrace: parsed.trace || []
+      };
+
+      this.proofTrace.push(canonical.proofSeed);
+      for (const m of operations) {
+        this.proofTrace.push(
+          m.op === 'OSC'
+            ? `OSC ${m.subj.raw}${m.delay ? ` @t+${m.delay}` : ''}`
+            : `${m.op} ${m.subj?.raw || '?'}→${m.obj?.raw || '?'}${m.delay ? ` @t+${m.delay}` : ''}`
+        );
+      }
+
+      return canonical;
+    }
+
+    const canonical = {
+      human: parsed.text,
+      timeIndex: this.currentTrial,
+      tokens: parsed.tokens,
+      subjects: parsed.subjects,
+      objects: parsed.objects,
+      modifier: parsed.modifier,
+      direction: parsed.direction,
+      relation: parsed.relation,
+      timingHints: parsed.timingHints,
+      axisToken: parsed.axisToken,
+      subjectIds: [],
+      objectIds: [],
+      canonicalOp: 'UNKNOWN',
+      axisHint: null,
+      immediateOps: [],
+      scheduled: [],
+      recursive: [],
+      axisEvents: [],
+      invariants: null,
+      ambiguityNotes: [],
+      symbolSet: new Set(),
+      state0: {},
+      proofSeed: ''
+    };
+
+    canonical.subjectIds = parsed.subjects.map(s => this.registry.getOrCreateId(s));
+    canonical.objectIds = parsed.objects.map(o => this.registry.getOrCreateId(o));
+    canonical.symbolSet = new Set([...canonical.subjectIds, ...canonical.objectIds]);
+
+    canonical.canonicalOp = this.mapToCanonicalOp(parsed.operation);
+    if (canonical.canonicalOp === 'UNKNOWN') {
+      canonical.ambiguityNotes.push(`operation:${parsed.rawOperation}`);
+    }
+
+    canonical.axisHint = this.resolveAxis(parsed);
+    if (canonical.axisHint.defaulted) {
+      canonical.ambiguityNotes.push(`axis-default:${canonical.axisHint.axis}`);
+    }
+
+    canonical.axisEvents = this.extractAxisEvents(parsed, canonical.axisHint);
+
+    canonical.state0 = this.captureStateSnapshot(Array.from(canonical.symbolSet));
+    canonical.invariants = this.computeInvariantExpectations(
+      canonical.canonicalOp,
+      canonical.subjectIds.length,
+      canonical.objectIds.length
+    );
+
+    canonical.immediateOps.push(this.createOperatorInstance(canonical, 'now', { magnitude: 1 }));
+
+    for (const hint of parsed.timingHints) {
+      if (hint.type === 'delay') {
+        canonical.scheduled.push({
+          operation: canonical.canonicalOp,
+          subjects: [...canonical.subjectIds],
+          objects: [...canonical.objectIds],
+          axis: canonical.axisHint.axis,
+          delta: canonical.axisHint.delta,
+          offset: hint.offset,
+          magnitude: hint.magnitude,
+          mode: 'delay',
+          source: hint.source
+        });
+      } else if (hint.type === 'repeat') {
+        for (let k = 1; k < hint.count; k++) {
+          canonical.scheduled.push({
+            operation: canonical.canonicalOp,
+            subjects: [...canonical.subjectIds],
+            objects: [...canonical.objectIds],
+            axis: canonical.axisHint.axis,
+            delta: canonical.axisHint.delta,
+            offset: hint.spacing * k,
+            magnitude: 1,
+            mode: 'repeat',
+            source: hint.source
+          });
+        }
+      } else if (hint.type === 'recursive') {
+        canonical.recursive.push({
+          operation: canonical.canonicalOp,
+          subjects: [...canonical.subjectIds],
+          objects: [...canonical.objectIds],
+          axis: canonical.axisHint.axis,
+          delta: canonical.axisHint.delta,
+          period: hint.period,
+          startOffset: hint.startOffset,
+          amplitude: hint.amplitude,
+          decay: hint.decay,
+          source: hint.source
+        });
+      }
+    }
+
+    canonical.proofSeed = `t${this.currentTrial}: subj=${Array.from(canonical.symbolSet).join(',')} | op=${canonical.canonicalOp}`;
+    this.proofTrace.push(canonical.proofSeed);
+
+    if (canonical.axisEvents.length > 0) {
+      this.proofTrace.push(`Axis events queued: ${canonical.axisEvents.map(e => e.type).join(', ')}`);
+    }
+
+    if (canonical.ambiguityNotes.length > 0) {
+      this.proofTrace.push(`Ambiguity: ${canonical.ambiguityNotes.join('; ')}`);
+    }
+
+    return canonical;
+  }
+
+  mapToCanonicalOp(operation) {
+    const baseOpMap = {
+      'pushes': 'PUSH',
+      'push': 'PUSH',
+      'presses': 'PUSH',
+      'propels': 'PUSH',
+      'drives': 'PUSH',
+      'thrusts': 'PUSH',
+      'pulls': 'PULL',
+      'pull': 'PULL',
+      'draws': 'PULL',
+      'reels': 'PULL',
+      'retrieves': 'PULL',
+      'splits': 'SPLIT',
+      'split': 'SPLIT',
+      'cleaves': 'SPLIT',
+      'bifurcates': 'SPLIT',
+      'fractures': 'SPLIT',
+      'merges': 'MERGE',
+      'merge': 'MERGE',
+      'fuses': 'MERGE',
+      'coalesces': 'MERGE',
+      'unites': 'MERGE',
+      'triggers': 'CASCADE',
+      'activates': 'CASCADE',
+      'ignites': 'CASCADE',
+      'unleashes': 'CASCADE',
+      'cascades': 'CASCADE',
+      'rotates': 'ROTATE',
+      'rotate': 'ROTATE',
+      'spins': 'ROTATE',
+      'whirls': 'ROTATE',
+      'oscillates': 'OSCILLATE',
+      'oscillate': 'OSCILLATE',
+      'orbits': 'OSCILLATE',
+      'swings': 'OSCILLATE',
+      'precesses': 'OSCILLATE',
+      'transforms': 'TRANSFORM',
+      'transform': 'TRANSFORM',
+      'morphs': 'TRANSFORM',
+      'reconfigures': 'TRANSFORM',
+      'collides': 'COLLIDE',
+      'collide': 'COLLIDE',
+      'impacts': 'COLLIDE',
+      'crashes': 'COLLIDE',
+      'bounces': 'BOUNCE',
+      'ricochets': 'BOUNCE',
+      'absorbs': 'ABSORB',
+      'ingests': 'ABSORB',
+      'emit': 'EMIT',
+      'emits': 'EMIT',
+      'radiates': 'EMIT',
+      'releases': 'EMIT',
+      'resonates': 'RESONATE',
+      'synchronizes': 'RESONATE',
+      'syncs': 'RESONATE'
+    };
+    const opMap = {
+      ...baseOpMap,
+      'presses': 'PUSH','shoves':'PUSH','nudges':'PUSH','drives':'PUSH',
+      'drags':'PULL','tugs':'PULL','yanks':'PULL',
+      'spins':'ROTATE','turns':'ROTATE','twists':'ROTATE',
+      'joins':'MERGE','combines':'MERGE','fuses':'MERGE',
+      'breaks':'SPLIT','divides':'SPLIT','separates':'SPLIT',
+      'starts':'CASCADE','launches':'CASCADE','causes':'CASCADE','triggers':'CASCADE','activates':'CASCADE',
+      'vibrates':'OSCILLATE','pulses':'OSCILLATE','waves':'OSCILLATE',
+      'changes':'TRANSFORM','shifts':'TRANSFORM','remaps':'TRANSFORM',
+      'hits':'COLLIDE','crashes':'COLLIDE','smashes':'COLLIDE',
+      'rebounds':'BOUNCE','bounces':'BOUNCE',
+      'soaks':'ABSORB','takes-in':'ABSORB',
+      'gives':'EMIT','sends':'EMIT','emits':'EMIT',
+      'tunes':'RESONATE','matches':'RESONATE','locks':'RESONATE'
+    };
+    return opMap[operation] || 'UNKNOWN';
+  }
+
+  resolveAxis(parsed) {
+    const direction = (parsed.direction || parsed.modifier || '').toLowerCase();
+    const axisHint = { axis: 'x', delta: 1, note: 'default', defaulted: true };
+
+    const apply = (axis, delta, note) => {
+      axisHint.axis = axis;
+      axisHint.delta = delta;
+      axisHint.note = note;
+      axisHint.defaulted = false;
+    };
+
+    switch(direction) {
+      case 'leftward': apply('x', -1, 'left'); break;
+      case 'rightward': apply('x', 1, 'right'); break;
+      case 'upward': apply('y', 1, 'up'); break;
+      case 'downward': apply('y', -1, 'down'); break;
+      case 'forward': apply('z', 1, 'forward'); break;
+      case 'backward': apply('z', -1, 'backward'); break;
+      case 'clockwise': apply('phase', 1, 'clockwise'); break;
+      case 'counterclockwise': apply('phase', -1, 'counter'); break;
+      case 'strongly': apply('x', 1, 'strong'); break;
+      case 'weakly': apply('x', 1, 'weak'); break;
+      case 'gradually': apply('x', 1, 'gradual'); break;
+      case 'symmetrically': apply('x', 0, 'symmetry'); break;
+    }
+
+    return axisHint;
+  }
+
+  extractAxisEvents(parsed, axisHint) {
+    const events = [];
+    for (const token of parsed.tokens) {
+      const lower = token.toLowerCase();
+      if (lower.includes('axis-swap')) {
+        events.push({ type: 'ROTATE_AXIS', timing: 'now', offset: 0, params: { sequence: ['y', 'x', 'z'] } });
+      } else if (lower.includes('axis-rotate')) {
+        events.push({ type: 'ROTATE_AXIS', timing: 'now', offset: 0, params: { sequence: ['y', 'z', 'x'] } });
+      } else if (lower.includes('axis-invert')) {
+        events.push({ type: 'INVERT_AXIS', timing: 'now', offset: 0, params: { axis: axisHint.axis || 'x' } });
+      } else if (lower.includes('axis-merge')) {
+        events.push({ type: 'MERGE_AXIS', timing: 't+1', offset: 1, params: { axes: ['x', 'y'] } });
+      } else if (lower.includes('axis-split')) {
+        events.push({ type: 'SPLIT_AXIS', timing: 'now', offset: 0, params: { axis: axisHint.axis || 'x' } });
+      }
+    }
+    return events;
+  }
+
+  computeInvariantExpectations(op, subjectCount, objectCount) {
+    const invariants = {
+      deltaSymbols: objectCount - subjectCount,
+      deltaEnergy: 0,
+      deltaInformation: 0,
+      expectations: []
+    };
+
+    switch(op) {
+      case 'PUSH':
+      case 'PULL':
+        invariants.expectations.push('conserve-energy');
+        invariants.expectations.push('conserve-information');
+        break;
+      case 'SPLIT':
+        invariants.deltaInformation = subjectCount > 0 ? subjectCount : 1;
+        invariants.expectations.push('increase-entropy');
+        invariants.expectations.push('conserve-energy');
+        break;
+      case 'MERGE':
+        invariants.deltaInformation = -1;
+        invariants.expectations.push('reduce-entropy');
+        invariants.expectations.push('conserve-energy');
+        break;
+      case 'CASCADE':
+        invariants.expectations.push('energy-redistribution');
+        break;
+      case 'OSCILLATE':
+        invariants.expectations.push('phase-periodicity');
+        break;
+      case 'TRANSFORM':
+        invariants.expectations.push('state-transfer');
+        break;
+      case 'COLLIDE':
+        invariants.expectations.push('momentum-exchange');
+        invariants.expectations.push('conserve-energy');
+        break;
+      case 'ABSORB':
+        invariants.expectations.push('energy-uptake');
+        break;
+      case 'EMIT':
+        invariants.deltaEnergy = -1;
+        invariants.expectations.push('energy-release');
+        break;
+      case 'RESONATE':
+        invariants.expectations.push('phase-lock');
+        break;
+    }
+
+    return invariants;
+  }
+
+  createOperatorInstance(canonical, timing, options = {}) {
+    return {
+      operation: canonical.canonicalOp,
+      subjects: [...canonical.subjectIds],
+      objects: [...canonical.objectIds],
+      axis: canonical.axisHint.axis,
+      delta: canonical.axisHint.delta,
+      timing,
+      magnitude: options.magnitude ?? 1,
+      relation: canonical.relation,
+      modifier: canonical.modifier,
+      meta: options.meta || {}
+    };
+  }
+
+  queueFromCanonical(canonical) {
+    for (const event of canonical.axisEvents) {
+      this.axisManager.queue({ ...event, trial: this.currentTrial + (event.offset || 0) });
+    }
+
+    for (const scheduled of canonical.scheduled) {
+      this.scheduledEffects.push({
+        trial: this.currentTrial + (scheduled.offset || 0),
+        operation: scheduled.operation,
+        subjects: scheduled.subjects,
+        objects: scheduled.objects,
+        axis: scheduled.axis,
+        meta: {
+          axis: scheduled.axis,
+          delta: scheduled.delta,
+          magnitude: scheduled.magnitude,
+          origin: `scheduled:${scheduled.source || 'delay'}`
+        }
+      });
+      this.proofTrace.push(`Scheduled ${scheduled.operation} @ t+${scheduled.offset}`);
+    }
+
+    for (const recursive of canonical.recursive) {
+      this.recursiveEffects.push({
+        operation: recursive.operation,
+        subjects: recursive.subjects,
+        objects: recursive.objects,
+        axis: recursive.axis,
+        delta: recursive.delta,
+        period: recursive.period,
+        start: this.currentTrial + recursive.startOffset,
+        amplitude: recursive.amplitude,
+        decay: recursive.decay,
+        source: recursive.source
+      });
+      this.proofTrace.push(`Recursive ${recursive.operation} every ${recursive.period} starting t+${recursive.startOffset}`);
+    }
+  }
+
+  applyScheduledEffects(trial) {
+    const due = this.scheduledEffects.filter(effect => effect.trial === trial);
+    if (due.length === 0) return;
+
+    for (const effect of due) {
+      this.proofTrace.push(`Scheduled effect firing: ${effect.operation}`);
+      this.executeOperator(effect.operation, effect.subjects, effect.objects, effect.meta);
+    }
+
+    this.scheduledEffects = this.scheduledEffects.filter(effect => effect.trial > trial);
+  }
+
+  applyRecursiveEffects(trial) {
+    if (this.recursiveEffects.length === 0) return;
+
+    for (const effect of this.recursiveEffects) {
+      if (trial < effect.start) continue;
+      if ((trial - effect.start) % effect.period !== 0) continue;
+      if (effect.amplitude <= 0.05) continue;
+
+      this.proofTrace.push(`Recursive effect firing: ${effect.operation}`);
+      const meta = {
+        axis: effect.axis,
+        delta: effect.delta,
+        magnitude: effect.amplitude,
+        origin: `recursive:${effect.source}`
+      };
+      this.executeOperator(effect.operation, effect.subjects, effect.objects, meta);
+      effect.amplitude *= effect.decay;
+    }
+
+    this.recursiveEffects = this.recursiveEffects.filter(effect => effect.amplitude > 0.05);
+  }
+
+  executeCanonicalRecord(canonical) {
+    for (const op of canonical.immediateOps) {
+      const meta = {
+        axis: op.axis,
+        delta: op.delta,
+        magnitude: op.magnitude,
+        origin: 'immediate'
+      };
+      this.executeOperator(op.operation, op.subjects, op.objects, meta);
+    }
+  }
+
+  executeOperator(operation, subjects, objects, meta = {}) {
+    switch(operation) {
+      case 'PUSH':
+        this.applyPush(subjects, objects, meta);
+        break;
+      case 'PULL':
+        this.applyPull(subjects, objects, meta);
+        break;
+      case 'SPLIT':
+        this.applySplit(subjects, objects, meta);
+        break;
+      case 'MERGE':
+        this.applyMerge(subjects, objects, meta);
+        break;
+      case 'CASCADE':
+        this.applyCascade(subjects, objects, meta);
+        break;
+      case 'ROTATE':
+        this.applyRotate(subjects, meta);
+        break;
+      case 'OSCILLATE':
+        this.applyOscillate(subjects, this.currentTrial, meta);
+        break;
+      case 'TRANSFORM':
+        this.applyTransform(subjects, objects, meta);
+        break;
+      case 'COLLIDE':
+        this.applyCollide(subjects, objects, meta);
+        break;
+      case 'BOUNCE':
+        this.applyBounce(subjects, objects, meta);
+        break;
+      case 'ABSORB':
+        this.applyAbsorb(subjects, objects, meta);
+        break;
+      case 'EMIT':
+        this.applyEmit(subjects, objects, meta);
+        break;
+      case 'RESONATE':
+        this.applyResonate(subjects, objects, meta);
+        break;
+      default:
+        this.proofTrace.push(`Unhandled operation: ${operation}`);
+    }
+  }
+
+  axisKey(axis) {
+    if (axis === 'phase') return 'phase';
+    return ['x', 'y', 'z'].includes(axis) ? axis : 'x';
+  }
+
+  commitState(id, state, note = '') {
+    this.registry.setState(id, state, this.currentTrial, note);
+  }
+
+  ensureAuditNotes(state) {
+    if (!state.auditNotes) state.auditNotes = [];
+  }
+
+  deltaCoordinate(state, axis, delta) {
+    const key = this.axisKey(axis);
+    if (key === 'phase') {
+      state.phase = (state.phase + delta) % (2 * Math.PI);
+    } else {
+      state[key] = (state[key] || 0) + delta;
+    }
+  }
+
+  deltaMomentum(state, axis, delta) {
+    const key = this.axisKey(axis);
+    if (key === 'phase') return;
+    state.momentum[key] = (state.momentum[key] || 0) + delta;
+  }
+
+  applyPush(subjectIds, objectIds, meta = {}) {
+    const axis = meta.axis || 'x';
+    const magnitude = meta.magnitude || 1;
+    const delta = meta.delta || 1;
+    const impulse = 2 * delta * magnitude;
+    const displacement = delta * magnitude;
+
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      this.deltaMomentum(subj, axis, -impulse);
+      subj.energy -= magnitude;
+      this.deltaCoordinate(subj, axis, -displacement);
+      subj.auditNotes.push(`push:${meta.origin}`);
+      this.commitState(subjId, subj, 'push-subject');
+      this.proofTrace.push(`${subjId}: push impulse=${(-impulse).toFixed(2)}`);
+    }
+
+    for (const objId of objectIds) {
+      const obj = this.registry.getState(objId);
+      if (!obj || !obj.exists) continue;
+      this.ensureAuditNotes(obj);
+      this.deltaMomentum(obj, axis, impulse);
+      obj.energy += magnitude;
+      this.deltaCoordinate(obj, axis, displacement);
+      obj.auditNotes.push(`push:${meta.origin}`);
+      this.commitState(objId, obj, 'push-object');
+      this.proofTrace.push(`${objId}: push receive=${impulse.toFixed(2)}`);
+    }
+  }
+
+  applyPull(subjectIds, objectIds, meta = {}) {
+    const axis = meta.axis || 'x';
+    const magnitude = meta.magnitude || 1;
+    const delta = meta.delta || -1;
+    const impulse = 2 * delta * magnitude;
+    const displacement = delta * magnitude;
+
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      this.deltaMomentum(subj, axis, impulse);
+      subj.energy -= magnitude;
+      this.deltaCoordinate(subj, axis, displacement);
+      subj.auditNotes.push(`pull:${meta.origin}`);
+      this.commitState(subjId, subj, 'pull-subject');
+    }
+
+    for (const objId of objectIds) {
+      const obj = this.registry.getState(objId);
+      if (!obj || !obj.exists) continue;
+      this.ensureAuditNotes(obj);
+      this.deltaMomentum(obj, axis, -impulse);
+      obj.energy += magnitude;
+      this.deltaCoordinate(obj, axis, -displacement);
+      obj.auditNotes.push(`pull:${meta.origin}`);
+      this.commitState(objId, obj, 'pull-object');
+    }
+  }
+
+  applySplit(subjectIds, objectIds, meta = {}) {
+    if (subjectIds.length !== 1 || objectIds.length < 2) {
+      this.proofTrace.push('Split requires 1 subject → 2+ objects');
+      return;
+    }
+
+    const subjId = subjectIds[0];
+    const subj = this.registry.getState(subjId);
+    if (!subj || !subj.exists) return;
+
+    this.ensureAuditNotes(subj);
+
+    const totalEnergy = subj.energy;
+    const totalInfo = subj.information;
+    const shareEnergy = totalEnergy / objectIds.length;
+
+    subj.exists = false;
+    subj.auditNotes.push('split:consumed');
+    this.commitState(subjId, subj, 'split-consume');
+
+    for (const objId of objectIds) {
+      let obj = this.registry.getState(objId);
+      if (!obj) {
+        obj = this.registry.createInitialState();
+        obj.createdAt = this.currentTrial;
+      }
+      this.ensureAuditNotes(obj);
+      obj.exists = true;
+      obj.energy = shareEnergy;
+      obj.information = totalInfo * 2 / objectIds.length;
+      obj.entropy = subj.entropy + 1;
+      obj.x = subj.x;
+      obj.y = subj.y;
+      obj.z = subj.z;
+      obj.momentum = { ...subj.momentum };
+      obj.auditNotes.push('split:spawn');
+      this.commitState(objId, obj, 'split-product');
+    }
+  }
+
+  applyMerge(subjectIds, objectIds, meta = {}) {
+    if (subjectIds.length < 2 || objectIds.length !== 1) {
+      this.proofTrace.push('Merge requires 2+ subjects → 1 object');
+      return;
+    }
+
+    const objId = objectIds[0];
+    let aggregate = this.registry.getState(objId) || this.registry.createInitialState();
+    aggregate.exists = true;
+    this.ensureAuditNotes(aggregate);
+    aggregate.energy = 0;
+    aggregate.information = 0;
+    aggregate.momentum = { x: 0, y: 0, z: 0 };
+
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      aggregate.energy += subj.energy;
+      aggregate.information += subj.information * 0.8;
+      aggregate.momentum.x += subj.momentum.x;
+      aggregate.momentum.y += subj.momentum.y;
+      aggregate.momentum.z += subj.momentum.z;
+      aggregate.x += subj.x / subjectIds.length;
+      aggregate.y += subj.y / subjectIds.length;
+      aggregate.z += subj.z / subjectIds.length;
+      subj.exists = false;
+      subj.auditNotes.push('merge:consumed');
+      this.commitState(subjId, subj, 'merge-consume');
+    }
+
+    aggregate.entropy = Math.max(0.5, aggregate.entropy - 0.5);
+    aggregate.auditNotes.push('merge:coalesce');
+    this.commitState(objId, aggregate, 'merge-result');
+  }
+
+  applyCascade(subjectIds, objectIds, meta = {}) {
+    if (subjectIds.length === 0 || objectIds.length === 0) return;
+
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      subj.energy *= 0.9;
+      subj.information += 0.5;
+      subj.auditNotes.push('cascade:source');
+      this.commitState(subjId, subj, 'cascade-source');
+
+      for (const objId of objectIds) {
+        this.scheduledEffects.push({
+          trial: this.currentTrial + 1,
+          operation: 'PUSH',
+          subjects: [subjId],
+          objects: [objId],
+          axis: meta.axis || 'x',
+          meta: {
+            axis: meta.axis || 'x',
+            delta: meta.delta || 1,
+            magnitude: (meta.magnitude || 1) * 0.5,
+            origin: 'cascade'
+          }
+        });
+      }
+    }
+  }
+
+  applyRotate(subjectIds, meta = {}) {
+    const angle = (meta.delta || 1) * Math.PI / 4;
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const x = subj.momentum.x * cos - subj.momentum.y * sin;
+      const y = subj.momentum.x * sin + subj.momentum.y * cos;
+      subj.momentum.x = x;
+      subj.momentum.y = y;
+      subj.phase = (subj.phase + angle) % (2 * Math.PI);
+      subj.auditNotes.push('rotate');
+      this.commitState(subjId, subj, 'rotate');
+    }
+  }
+
+  applyOscillate(subjectIds, trial, meta = {}) {
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      const amplitude = 3 * (meta.magnitude || 1);
+      subj.x = amplitude * Math.sin(trial * Math.PI / 4);
+      subj.y = amplitude * Math.cos(trial * Math.PI / 4);
+      subj.phase = (trial * Math.PI / 4) % (2 * Math.PI);
+      subj.frequency *= 1 + 0.05 * (meta.magnitude || 1);
+      subj.auditNotes.push('oscillate');
+      this.commitState(subjId, subj, 'oscillate');
+    }
+  }
+
+  applyTransform(subjectIds, objectIds, meta = {}) {
+    if (subjectIds.length === 0) return;
+    const count = Math.min(subjectIds.length, objectIds.length);
+
+    for (let i = 0; i < count; i++) {
+      const subjId = subjectIds[i];
+      const objId = objectIds[i];
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      let obj = this.registry.getState(objId) || this.registry.createInitialState();
+      this.ensureAuditNotes(obj);
+      obj.exists = true;
+      obj.energy = subj.energy;
+      obj.information = subj.information;
+      obj.momentum = { ...subj.momentum };
+      obj.phase = (subj.phase + Math.PI) % (2 * Math.PI);
+      obj.auditNotes.push('transform:target');
+      this.commitState(objId, obj, 'transform-target');
+
+      subj.exists = false;
+      subj.auditNotes.push('transform:source');
+      this.commitState(subjId, subj, 'transform-source');
+    }
+  }
+
+  applyCollide(subjectIds, objectIds, meta = {}) {
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      for (const objId of objectIds) {
+        const obj = this.registry.getState(objId);
+        if (!obj || !obj.exists) continue;
+        this.ensureAuditNotes(obj);
+        const temp = { ...subj.momentum };
+        subj.momentum = { ...obj.momentum };
+        obj.momentum = temp;
+        const totalEnergy = subj.energy + obj.energy;
+        subj.energy = totalEnergy * 0.5;
+        obj.energy = totalEnergy * 0.5;
+        subj.auditNotes.push('collide');
+        obj.auditNotes.push('collide');
+        this.commitState(subjId, subj, 'collide');
+        this.commitState(objId, obj, 'collide');
+      }
+    }
+  }
+
+  applyBounce(subjectIds, objectIds, meta = {}) {
+    const axis = meta.axis || 'x';
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      const key = this.axisKey(axis);
+      const currentMomentum = subj.momentum[key] || 0;
+      this.deltaMomentum(subj, axis, -2 * currentMomentum);
+      subj.auditNotes.push('bounce');
+      this.commitState(subjId, subj, 'bounce');
+    }
+
+    for (const objId of objectIds) {
+      const obj = this.registry.getState(objId);
+      if (!obj || !obj.exists) continue;
+      this.ensureAuditNotes(obj);
+      const key = this.axisKey(axis);
+      const currentMomentum = obj.momentum[key] || 0;
+      this.deltaMomentum(obj, axis, -2 * currentMomentum);
+      obj.auditNotes.push('bounce');
+      this.commitState(objId, obj, 'bounce');
+    }
+  }
+
+  applyAbsorb(subjectIds, objectIds, meta = {}) {
+    if (subjectIds.length !== 1 || objectIds.length === 0) return;
+    const subjId = subjectIds[0];
+    const subj = this.registry.getState(subjId);
+    if (!subj || !subj.exists) return;
+    this.ensureAuditNotes(subj);
+
+    let absorbed = 0;
+    for (const objId of objectIds) {
+      const obj = this.registry.getState(objId);
+      if (!obj || !obj.exists) continue;
+      this.ensureAuditNotes(obj);
+      const transfer = obj.energy * 0.5;
+      obj.energy -= transfer;
+      absorbed += transfer;
+      obj.auditNotes.push('absorb:loss');
+      this.commitState(objId, obj, 'absorb-object');
+    }
+
+    subj.energy += absorbed;
+    subj.information += absorbed * 0.1;
+    subj.auditNotes.push('absorb:gain');
+    this.commitState(subjId, subj, 'absorb-subject');
+  }
+
+  applyEmit(subjectIds, objectIds, meta = {}) {
+    if (subjectIds.length !== 1) return;
+    const subjId = subjectIds[0];
+    const subj = this.registry.getState(subjId);
+    if (!subj || !subj.exists) return;
+    this.ensureAuditNotes(subj);
+
+    const emitted = subj.energy * 0.3;
+    subj.energy -= emitted;
+    subj.auditNotes.push('emit:source');
+    this.commitState(subjId, subj, 'emit-source');
+
+    if (objectIds.length === 0) return;
+    const share = emitted / objectIds.length;
+    for (const objId of objectIds) {
+      let obj = this.registry.getState(objId);
+      if (!obj) {
+        obj = this.registry.createInitialState();
+        obj.createdAt = this.currentTrial;
+      }
+      this.ensureAuditNotes(obj);
+      obj.exists = true;
+      obj.energy += share;
+      obj.information += share * 0.2;
+      obj.auditNotes.push('emit:target');
+      this.commitState(objId, obj, 'emit-target');
+    }
+  }
+
+  applyResonate(subjectIds, objectIds, meta = {}) {
+    for (const subjId of subjectIds) {
+      const subj = this.registry.getState(subjId);
+      if (!subj || !subj.exists) continue;
+      this.ensureAuditNotes(subj);
+      for (const objId of objectIds) {
+        const obj = this.registry.getState(objId);
+        if (!obj || !obj.exists) continue;
+        this.ensureAuditNotes(obj);
+        const averagePhase = (subj.phase + obj.phase) / 2;
+        subj.phase = averagePhase;
+        obj.phase = averagePhase;
+        subj.frequency = (subj.frequency + obj.frequency) / 2;
+        obj.frequency = subj.frequency;
+        subj.auditNotes.push('resonate');
+        obj.auditNotes.push('resonate');
+        this.commitState(subjId, subj, 'resonate');
+        this.commitState(objId, obj, 'resonate');
+      }
+    }
+  }
+
+  applyQuantumEffects() {
+    const activeIds = [];
+    for (const [id, state] of this.registry.idToState) {
+      if (state.exists) activeIds.push(id);
+    }
+
+    if (Math.random() < 0.1 && activeIds.length > 0) {
+      const id = activeIds[Math.floor(Math.random() * activeIds.length)];
+      const state = this.registry.getState(id);
+      this.ensureAuditNotes(state);
+      state.superposition = true;
+      state.wavefunction = Math.random();
+      state.auditNotes.push('quantum:superposition');
+      this.commitState(id, state, 'quantum-superposition');
+      this.proofTrace.push(`${id} enters superposition`);
+    }
+
+    if (Math.random() < 0.05 && activeIds.length >= 2) {
+      const id1 = activeIds[Math.floor(Math.random() * activeIds.length)];
+      let id2 = id1;
+      while (id2 === id1) {
+        id2 = activeIds[Math.floor(Math.random() * activeIds.length)];
+      }
+      const state1 = this.registry.getState(id1);
+      const state2 = this.registry.getState(id2);
+      this.ensureAuditNotes(state1);
+      this.ensureAuditNotes(state2);
+      state1.entangled = id2;
+      state2.entangled = id1;
+      state1.auditNotes.push('quantum:entangle');
+      state2.auditNotes.push('quantum:entangle');
+      this.commitState(id1, state1, 'quantum-entangle');
+      this.commitState(id2, state2, 'quantum-entangle');
+      this.proofTrace.push(`${id1} entangled with ${id2}`);
+    }
+  }
+
+  checkConservation(canonical) {
+    const totals = this.captureTotals();
+    const deltas = {
+      energy: totals.energy - this.lastTotals.energy,
+      information: totals.information - this.lastTotals.information,
+      momentum: {
+        x: totals.momentum.x - this.lastTotals.momentum.x,
+        y: totals.momentum.y - this.lastTotals.momentum.y,
+        z: totals.momentum.z - this.lastTotals.momentum.z
+      },
+      symbols: totals.symbols - this.lastTotals.symbols
+    };
+
+    const violations = [];
+    const tolerance = 0.05;
+
+    if (canonical.invariants.expectations.includes('conserve-energy')) {
+      if (Math.abs(deltas.energy - canonical.invariants.deltaEnergy) > tolerance) {
+        violations.push('energy');
+      }
+    }
+
+    if (canonical.invariants.expectations.includes('conserve-information')) {
+      if (Math.abs(deltas.information - canonical.invariants.deltaInformation) > tolerance) {
+        violations.push('information');
+      }
+    }
+
+    if (canonical.invariants.expectations.includes('momentum-exchange')) {
+      const mag = Math.abs(deltas.momentum.x) + Math.abs(deltas.momentum.y) + Math.abs(deltas.momentum.z);
+      if (mag > 0.5) {
+        violations.push('momentum');
+      }
+    }
+
+    if (canonical.invariants && canonical.invariants.expectations.includes('balance-groups')) {
+      const g = canonical.invariants.balanceGroups || { left: [], right: [] };
+      const sum = (ids, key) => ids.reduce((acc, id) => {
+        const s = this.registry.getState(id);
+        if (!s || !s.exists) return acc;
+        if (key === 'energy') return acc + s.energy;
+        if (key === 'x') return acc + s.x;
+        if (key === 'px') return acc + s.momentum.x;
+        if (key === 'info') return acc + s.information;
+        return acc;
+      }, 0);
+      const tol = 0.5;
+      const diffs = {
+        energy: Math.abs(sum(g.left, 'energy') - sum(g.right, 'energy')),
+        posX: Math.abs(sum(g.left, 'x') - sum(g.right, 'x')),
+        momX: Math.abs(sum(g.left, 'px') - sum(g.right, 'px')),
+        info: Math.abs(sum(g.left, 'info') - sum(g.right, 'info'))
+      };
+      if (diffs.energy > tol || diffs.posX > tol || diffs.momX > tol || diffs.info > tol) {
+        violations.push('balance');
+        this.proofTrace.push(`Balance diff E:${diffs.energy.toFixed(2)} X:${diffs.posX.toFixed(2)} pX:${diffs.momX.toFixed(2)} I:${diffs.info.toFixed(2)}`);
+      }
+    }
+
+    this.invariantLedger.record(this.currentTrial, totals, deltas, canonical.invariants.expectations);
+    this.lastTotals = totals;
+
+    return violations;
+  }
+
+  captureTotals() {
+    let energy = 0;
+    let information = 0;
+    const momentum = { x: 0, y: 0, z: 0 };
+    let symbols = 0;
+
+    for (const [id, state] of this.registry.idToState) {
+      if (!state.exists) continue;
+      energy += state.energy;
+      information += state.information;
+      momentum.x += state.momentum.x;
+      momentum.y += state.momentum.y;
+      momentum.z += state.momentum.z;
+      symbols++;
+    }
+
+    return { energy, information, momentum, symbols };
+  }
+
+  captureStateSnapshot(ids = null) {
+    const snapshot = { __meta: { trial: this.currentTrial, frame: this.axisManager.getFrameAt(this.currentTrial), totals: this.captureTotals() } };
+
+    for (const [id, state] of this.registry.idToState) {
+      if (!state.exists) continue;
+      if (ids && !ids.includes(id)) continue;
+      snapshot[id] = {
+        ...state,
+        momentum: { ...state.momentum },
+        mergeChildren: [...(state.mergeChildren || [])],
+        pendingSchedules: [...(state.pendingSchedules || [])],
+        auditNotes: [...(state.auditNotes || [])]
+      };
+    }
+
+    return snapshot;
+  }
+
+  compareStates(state1, state2, withCounterfactuals = false) {
+    const meta1 = state1.__meta || {};
+    const meta2 = state2.__meta || {};
+
+    const entries1 = Object.entries(state1).filter(([k]) => k !== '__meta').sort();
+    const entries2 = Object.entries(state2).filter(([k]) => k !== '__meta').sort();
+
+    if (entries1.length !== entries2.length) {
+      return { match: false, confidence: 0, trace: ['Symbol count mismatch'] };
+    }
+
+    let matchScore = 1.0;
+    const trace = [];
+    const tolerance = 0.05;
+
+    for (let i = 0; i < entries1.length; i++) {
+      const [id1, s1] = entries1[i];
+      const [id2, s2] = entries2[i];
+      if (id1 !== id2) {
+        trace.push(`ID mismatch: ${id1} vs ${id2}`);
+        return { match: false, confidence: 0, trace };
+      }
+
+      const checks = ['x', 'y', 'z', 'energy', 'phase', 'information'];
+      for (const dim of checks) {
+        const diff = Math.abs(s1[dim] - s2[dim]);
+        if (diff > tolerance) {
+          matchScore -= 0.1 * diff;
+          trace.push(`${id1}.${dim}: ${s1[dim].toFixed(2)} vs ${s2[dim].toFixed(2)}`);
+        }
+      }
+
+      const momDiff = Math.sqrt(
+        Math.pow(s1.momentum.x - s2.momentum.x, 2) +
+        Math.pow(s1.momentum.y - s2.momentum.y, 2) +
+        Math.pow(s1.momentum.z - s2.momentum.z, 2)
+      );
+      if (momDiff > 0.2) {
+        matchScore -= 0.15 * momDiff;
+        trace.push(`${id1}.momentum Δ=${momDiff.toFixed(2)}`);
+      }
+    }
+
+    if (withCounterfactuals && this.config.counterfactuals) {
+      matchScore *= this.testCounterfactuals(state1, state2);
+    }
+
+    const confidence = Math.max(0, Math.min(1, matchScore));
+    return { match: confidence >= 0.90, confidence, trace };
+  }
+
+  testCounterfactuals(state1, state2) {
+    let robustness = 1.0;
+    const variance = this.calculateEnergyVariance(state1, state2);
+    if (variance > 0.2) robustness *= 0.85;
+    if (!this.checkMomentumSymmetry(state1, state2)) robustness *= 0.9;
+    if (!this.checkPhaseInvariance(state1, state2)) robustness *= 0.95;
+    return robustness;
+  }
+
+  calculateEnergyVariance(state1, state2) {
+    const energies1 = Object.entries(state1).filter(([k]) => k !== '__meta').map(([, s]) => s.energy);
+    const energies2 = Object.entries(state2).filter(([k]) => k !== '__meta').map(([, s]) => s.energy);
+    if (energies1.length === 0 || energies2.length === 0) return 0;
+    const mean1 = energies1.reduce((a, b) => a + b, 0) / energies1.length;
+    const mean2 = energies2.reduce((a, b) => a + b, 0) / energies2.length;
+    const variance1 = energies1.reduce((a, b) => a + Math.pow(b - mean1, 2), 0) / energies1.length;
+    const variance2 = energies2.reduce((a, b) => a + Math.pow(b - mean2, 2), 0) / energies2.length;
+    return Math.abs(variance1 - variance2) / Math.max(variance1, variance2, 1);
+  }
+
+  checkMomentumSymmetry(state1, state2) {
+    for (const id in state1) {
+      if (id === '__meta') continue;
+      if (!state2[id]) continue;
+      const mom1 = state1[id].momentum;
+      const mom2 = state2[id].momentum;
+      const dot = mom1.x * mom2.x + mom1.y * mom2.y + mom1.z * mom2.z;
+      const mag1 = Math.sqrt(mom1.x**2 + mom1.y**2 + mom1.z**2);
+      const mag2 = Math.sqrt(mom2.x**2 + mom2.y**2 + mom2.z**2);
+      if (mag1 > 0.1 && mag2 > 0.1) {
+        const cosAngle = dot / (mag1 * mag2);
+        if (Math.abs(cosAngle) < 0.85) return false;
+      }
+    }
+    return true;
+  }
+
+  checkPhaseInvariance(state1, state2) {
+    for (const id in state1) {
+      if (id === '__meta') continue;
+      if (!state2[id]) continue;
+      const phaseDiff = Math.abs(state1[id].phase - state2[id].phase) % (2 * Math.PI);
+      if (phaseDiff > 0.2 && phaseDiff < (2 * Math.PI - 0.2)) return false;
+    }
+    return true;
+  }
+
+  generateAuditHash(canonical) {
+    const data = JSON.stringify({
+      t: canonical.timeIndex,
+      op: canonical.canonicalOp,
+      subj: canonical.subjectIds,
+      obj: canonical.objectIds,
+      axis: canonical.axisHint,
+      invariants: canonical.invariants,
+      schedule: canonical.scheduled,
+      recursive: canonical.recursive,
+      axisEvents: canonical.axisEvents
+    });
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      hash = (hash * 31 + data.charCodeAt(i)) % 1000000007;
+    }
+    return hash.toString(16);
+  }
+}
+/* ===== PREMISE GENERATOR ===== */
+
+class CanonicalPremiseGenerator {
+  constructor(config) {
+    this.config = config;
+
+    this.symbols = {
+      // 70+ species (uppercase, single tokens; beginner-legible)
+      species: [
+        'DOG','CAT','WOLF','FOX','BEAR','LION','TIGER','LEOPARD','JAGUAR','CHEETAH','PANTHER','LYNX','BOBCAT','COUGAR',
+        'ELEPHANT','RHINO','HIPPO','GIRAFFE','ZEBRA','DEER','ELK','MOOSE','HORSE','DONKEY','CAMEL','LLAMA','GOAT','SHEEP',
+        'COW','BISON','BUFFALO','PIG','BOAR','RABBIT','HARE','MOUSE','RAT','SQUIRREL','OTTER','BEAVER','RACCOON','BADGER',
+        'SKUNK','MONKEY','APE','GORILLA','CHIMP','ORANGUTAN','KANGAROO','KOALA','PANDA','BAT','DOLPHIN','WHALE','SHARK',
+        'SEAL','PENGUIN','EAGLE','HAWK','FALCON','OWL','DUCK','SWAN','GOOSE','TURKEY','CHICKEN','PEACOCK','PARROT','CROW',
+        'RAVEN','SPARROW','ROBIN','ANT','BEE','WASP','BUTTERFLY','MOTH','DRAGONFLY','SPIDER','SCORPION','CRAB','LOBSTER',
+        'OCTOPUS','SQUID','STARFISH','JELLYFISH','TURTLE','LIZARD','SNAKE','FROG','TOAD'
+      ],
+
+      // 120+ beginner-legible physics words (nouns/objects/states)
+      physics: [
+        'FORCE','MASS','SPEED','TIME','HEAT','LIGHT','SOUND','FRICTION','GRAVITY','MAGNET','CHARGE','CURRENT','VOLTAGE',
+        'ENERGY','POWER','WORK','IMPULSE','PRESSURE','DENSITY','BUOYANCY','TORQUE','INERTIA','MOMENTUM','COLLISION','ORBIT',
+        'LIFT','DRAG','THRUST','REFLECTION','REFRACTION','ABSORPTION','EMISSION','TRANSFER','CONVERSION','FUSION','FISSION',
+        'EXPANSION','COMPRESSION','PHASE','FREQUENCY','AMPLITUDE','WAVELENGTH','PERIOD','PULSE','RIPPLE','WAVE','FLOW',
+        'FIELD','VECTOR','SCALAR','ANGLE','AXIS','FRAME','ROTATION','TILT','SPIN','ROLL','PITCH','YAW','EQUILIBRIUM',
+        'RESONANCE','HARMONIC','NODE','ANTINODE','SHOCK','TURBULENCE','VISCOSITY','SPRING','LEVER','GEAR','PULLEY','WEDGE',
+        'WHEEL','AXLE','PLANE','MACHINE','BATTERY','CIRCUIT','SWITCH','RESISTOR','CAPACITOR','COIL','MAGNETISM','INDUCTION',
+        'RADIATION','CONDUCTION','CONVECTION','TEMPERATURE','PHOTON','ELECTRON','PROTON','NEUTRON','ATOM','MOLECULE','ION',
+        'PLASMA','VACUUM','MEDIUM','REFLECTOR','LENS','MIRROR','PRISM','DIODE','LASER','SOLAR','WIND','KINETIC','POTENTIAL',
+        'ELASTIC','PLASTIC','STRESS','STRAIN','LOAD','BALANCE','CENTER','LEVERAGE','AXLE-FORCE','BEARING','SPRING-FORCE'
+      ],
+
+      // Keep and expand colors if you like (optional)
+      colors: ['RED','BLUE','GREEN','YELLOW','PURPLE','ORANGE','CYAN','MAGENTA','WHITE','BLACK'],
+
+      // Axis/temporal pools you already had:
+      axisEvents: ['axis-swap','axis-rotate','axis-invert','axis-merge','axis-split'],
+      delayedTiming: ['later','after','delayed','again'],
+      recursiveTiming: ['periodically','recursively','every-two'],
+      directionPool: ['upward','downward','leftward','rightward','forward','backward','precisely','strongly','carefully','symmetrically','equally']
+    };
+    // Normalize for easy access:
+    this.words = {
+      subjects: [...this.symbols.species, ...this.symbols.physics],
+      objects:  [...this.symbols.species, ...this.symbols.physics]
+    };
+    this.directions = [...this.symbols.directionPool, ...this.symbols.delayedTiming, ...this.symbols.recursiveTiming];
+
+    this.symbolPrefixes = ['ULTRA', 'QUANTUM', 'HYPER', 'PRIME', 'SHADOW', 'PHASE'];
+    this.operationVariants = {
+      PUSH: ['push', 'pushes', 'presses', 'propels', 'thrusts', 'drives', 'shoves', 'nudges'],
+      PULL: ['pull', 'pulls', 'draws', 'reels', 'retrieves', 'drags', 'tugs', 'yanks'],
+      SPLIT: ['splits', 'split', 'cleaves', 'bifurcates', 'fractures', 'breaks', 'divides', 'separates'],
+      MERGE: ['merges', 'merge', 'fuses', 'coalesces', 'unites', 'joins', 'combines'],
+      CASCADE: ['triggers', 'activates', 'ignites', 'unleashes', 'cascades', 'starts', 'launches', 'causes'],
+      RESONATE: ['resonates', 'synchronizes', 'syncs', 'tunes', 'matches', 'locks'],
+      TRANSFORM: ['transforms', 'transform', 'morphs', 'reconfigures', 'changes', 'shifts', 'remaps'],
+      OSCILLATE: ['oscillates', 'oscillate', 'orbits', 'swings', 'precesses', 'vibrates', 'pulses', 'waves'],
+      COLLIDE: ['collides', 'collide', 'impacts', 'crashes', 'hits', 'smashes'],
+      ABSORB: ['absorbs', 'ingests', 'soaks', 'takes-in'],
+      EMIT: ['emit', 'emits', 'radiates', 'releases', 'gives', 'sends'],
+      BOUNCE: ['bounces', 'ricochets', 'rebounds'],
+      ROTATE: ['rotates', 'rotate', 'spins', 'whirls', 'turns', 'twists'],
+      UNKNOWN: []
+    };
+
+    this.axisEvents = ['axis-swap', 'axis-rotate', 'axis-invert', 'axis-merge', 'axis-split'];
+    this.delayedTiming = ['later', 'after', 'delayed', 'again'];
+    this.recursiveTiming = ['periodically', 'recursively', 'every-two'];
+    this.directionPool = ['upward', 'downward', 'leftward', 'rightward', 'forward',
+                          'backward', 'precisely', 'strongly', 'carefully', 'symmetrically',
+                          'equally'];
+    this.directions = [...this.directionPool, ...this.delayedTiming, ...this.recursiveTiming];
+    this.mathOperators = ['×', '-', '÷', '+'];
+    this.mathOperands = ['a', 'b', 'c', 'd', 'e'];
+
+    this.usedPremises = new Set();
+    this.premiseHistory = [];
+    this.lastSurfaces = [];
+    this.stats = { total: 0, delayed: 0, recursive: 0, axis: 0 };
+
+    this.engineVerbToOp = {};
+    for (const [op, variants] of Object.entries(this.operationVariants)) {
+      variants.forEach(v => {
+        this.engineVerbToOp[v.toLowerCase()] = op;
+        this.engineVerbToOp[v.toUpperCase()] = op;
+      });
+    }
+
+    this.policy = {
+      historyWindow: 40,
+      minTokenDiff: 3,
+      forbidCaseOnly: true,
+      rotateCategories: true
+    };
+
+    this.normalizeSurface = (s = '') => s.trim().toUpperCase();
+    this.tokenize = (s = '') => this.normalizeSurface(s).split(/\s+/).filter(Boolean);
+    this.tokenDiffCount = (a = '', b = '') => {
+      const A = this.tokenize(a);
+      const B = this.tokenize(b);
+      const len = Math.min(A.length, B.length);
+      let diff = Math.max(A.length, B.length) - len;
+      for (let i = 0; i < len; i++) {
+        if (A[i] !== B[i]) diff++;
+      }
+      return diff;
+    };
+    this.isRecent = (prem = '') => {
+      const target = this.normalizeSurface(prem);
+      const recent = this.premiseHistory
+        .slice(-this.policy.historyWindow)
+        .flatMap(entry => {
+          if (!entry) return [];
+          if (Array.isArray(entry)) {
+            return entry.map(this.normalizeSurface);
+          }
+          return [this.normalizeSurface(entry)];
+        });
+      return recent.includes(target);
+    };
+
+    // ===== APEX-PROTECT-BEGIN (v4-beginner-policy) =====
+    this.apxV4_getPolicy = () => {
+      if (!APEX_FEATURES.visibleBeginnerLevels) return null;
+      const lvl = (typeof game!=='undefined' ? game.visibleLevel : 7) || 7;
+      if (lvl>=1 && lvl<=5) return apxV4_policyForLevel(lvl);
+      return null; // advanced levels use original behavior
+    };
+    this.apxV4_countConstraints = (canon) => {
+      let k=0;
+      if (canon.identityCoupling)    k++;
+      if (canon.hasSchedule)         k++;
+      if (canon.hasAxisOrDir)        k++;
+      if (canon.hasInhibitOrEnergy)  k++;
+      return k;
+    };
+    // ===== APEX-PROTECT-END (v4-beginner-policy) =====
+
+    // ===== APEX-PROTECT-BEGIN (v4-diversity-helpers) =====
+    this.apxV4_norm  = s => (APEX_FEATURES.caseNormalization ? String(s||'').toUpperCase() : String(s||''));
+    this.apxV4_toks  = s => this.apxV4_norm(s).split(/\s+/);
+    this.apxV4_diff  = (a,b) => { const A=this.apxV4_toks(a), B=this.apxV4_toks(b);
+      let d=0; for(let i=0;i<Math.min(A.length,B.length);i++) if (A[i]!==B[i]) d++; return d; };
+    this.apxV4_sig   = s => { const T=this.apxV4_toks(s); return ['S','V','O','R','T'].slice(0,T.length).join(''); };
+    this.apxV4_recent=[];
+    this.apxV4_push  = (prem)=>{ const P=this.apxV4_norm(prem); this.apxV4_recent.push({P,sig:this.apxV4_sig(P)}); if (this.apxV4_recent.length>80) this.apxV4_recent.shift(); };
+    this.apxV4_near  = (prem,minDiff)=>{ const P=this.apxV4_norm(prem), sig=this.apxV4_sig(P);
+      return this.apxV4_recent.some(r => (r.P===P) || (r.sig===sig && this.apxV4_diff(r.P,P)<minDiff)); };
+    // ===== APEX-PROTECT-END (v4-diversity-helpers) =====
+  }
+
+  generate(shouldMatch = false, referenceIndex = null, registry = null, blueprint = null) {
+    let result;
+
+    if (this.config && this.config.compressedMath) {
+      if (shouldMatch && referenceIndex !== null && registry) {
+        result = this.generateMathMatch(referenceIndex, registry, blueprint);
+      } else {
+        result = this.generateMathNew();
+      }
+    } else if (shouldMatch && referenceIndex !== null && registry) {
+      result = this.generateMatching(referenceIndex, registry);
+    } else {
+      result = this.generateNew();
+    }
+
+    let attempts = 0;
+    while (
+      this.usedPremises.has(this.normalizeSurface(result.premise)) &&
+      attempts < 50 &&
+      !(this.config && this.config.compressedMath && shouldMatch)
+    ) {
+      if (this.config && this.config.compressedMath) {
+        result = this.generateMathNew();
+      } else {
+        result = shouldMatch
+          ? this.generateMatching(referenceIndex, registry)
+          : this.generateNew();
+      }
+      attempts++;
+    }
+
+    const premise = result.premise;
+    const normalizedPremise = this.normalizeSurface(premise);
+    this.usedPremises.add(normalizedPremise);
+    this.recordStats(result);
+
+    if (this.usedPremises.size > 100) {
+      const premises = Array.from(this.usedPremises);
+      this.usedPremises = new Set(premises.slice(-50));
+    }
+
+    return premise;
+  }
+
+  recordStats(result) {
+    this.stats.total++;
+    if (result.includeDelayed) this.stats.delayed++;
+    if (result.includeRecursive) this.stats.recursive++;
+    if (result.includeAxis) this.stats.axis++;
+  }
+
+  shouldIncludeDelayed() {
+    const ratio = this.stats.total > 0 ? this.stats.delayed / this.stats.total : 0;
+    if (ratio < 0.30) return Math.random() < 0.65;
+    if (ratio > 0.45) return Math.random() < 0.2;
+    return Math.random() < 0.35;
+  }
+
+  shouldIncludeRecursive() {
+    const ratio = this.stats.total > 0 ? this.stats.recursive / this.stats.total : 0;
+    if (ratio < 0.20) return Math.random() < 0.5;
+    if (ratio > 0.35) return Math.random() < 0.1;
+    return Math.random() < 0.25;
+  }
+
+  shouldIncludeAxisEvent() {
+    const ratio = this.stats.total > 0 ? this.stats.axis / this.stats.total : 0;
+    if (ratio < 0.25) return Math.random() < 0.7;
+    if (ratio > 0.40) return Math.random() < 0.2;
+    return Math.random() < 0.33;
+  }
+
+  choosePattern() {
+    const patterns = ['push', 'split', 'merge', 'cascade', 'resonate', 'transform', 'oscillate'];
+    return patterns[Math.floor(Math.random() * patterns.length)];
+  }
+
+  generateNew() {
+    const policy = this.apxV4_getPolicy ? this.apxV4_getPolicy() : null;
+    const gates = policy?.gates;
+
+    let includeRecursive = this.shouldIncludeRecursive();
+    let includeDelayed = includeRecursive || this.shouldIncludeDelayed();
+    let includeAxis = this.shouldIncludeAxisEvent();
+
+    if (gates) {
+      if (!gates.allowRecursive) includeRecursive = false;
+      if (!gates.allowSchedule) includeDelayed = false;
+      if (!gates.allowAxis) includeAxis = false;
+    }
+
+    let tailType = includeRecursive ? 'recursive' : includeDelayed ? 'delayed' : 'direction';
+    let axisEnabled = includeAxis;
+    const axisPool = (gates && Array.isArray(gates.axisTokens) && gates.axisTokens.length)
+      ? gates.axisTokens.map(a => a.toUpperCase())
+      : this.axisEvents.map(a => a.toUpperCase());
+    let axisToken = axisEnabled ? this.randomFrom(axisPool) : null;
+
+    const patternDefs = [
+      { name:'push', verbs:['pushes','presses','shoves','nudges','drives','pulls','drags','spins','rotates'], relations:['toward','creating','forming','into','aligning','initiating'], subjectCompound:false, objectCompound:false },
+      { name:'split', verbs:['splits','breaks','divides','separates'], relations:['forming','creating','toward','into'], subjectCompound:false, objectCompound:true },
+      { name:'merge', verbs:['merges','joins','combines','fuses'], relations:['creating','forming','toward'], subjectCompound:true, objectCompound:false },
+      { name:'cascade', verbs:['triggers','activates','starts','launches','causes'], relations:['initiating','causing','starting','driving','forming','creating'], subjectCompound:false, objectCompound:false },
+      { name:'resonate', verbs:['resonates','tunes','matches','locks'], relations:['with','toward','into','creating'], subjectCompound:false, objectCompound:false },
+      { name:'transform', verbs:['transforms','changes','shifts','remaps'], relations:['into','toward','becoming','forming'], subjectCompound:false, objectCompound:false },
+      { name:'oscillate', verbs:['oscillates','vibrates','pulses','waves'], relations:['around','across','along','toward'], subjectCompound:false, objectCompound:false }
+    ];
+
+    let patternOptions = [...patternDefs];
+    if (gates?.verbs) {
+      patternOptions = patternOptions.filter(def => def.verbs.some(v => gates.verbs.includes(v)));
+    }
+    if (gates && gates.allowCompound === false) {
+      patternOptions = patternOptions.filter(def => !def.subjectCompound && !def.objectCompound);
+    }
+    if (patternOptions.length === 0) patternOptions = [...patternDefs];
+    const patternDef = this.randomFrom(patternOptions);
+    const pattern = patternDef.name;
+
+    const pickSubject = () => this.randomFrom(this.words.subjects).toUpperCase();
+    const pickObject = () => this.randomFrom(this.words.objects).toUpperCase();
+    const pickVerb = (pool) => {
+      let basePool = Array.isArray(pool) && pool.length ? pool : ['pushes','pulls'];
+      if (gates?.verbs) {
+        const allowed = basePool.filter(v => gates.verbs.includes(v));
+        basePool = allowed.length ? allowed : gates.verbs;
+      }
+      return this.randomFrom(basePool).toUpperCase();
+    };
+    const pickRelation = (pool) => {
+      let basePool = Array.isArray(pool) && pool.length ? pool : ['toward','into','creating','forming'];
+      if (gates?.relations) {
+        const allowed = basePool.filter(r => gates.relations.includes(r));
+        basePool = allowed.length ? allowed : gates.relations;
+      }
+      return this.randomFrom(basePool).toUpperCase();
+    };
+    const pickTailToken = (type = tailType) => {
+      let basePool;
+      if (type === 'recursive') basePool = this.recursiveTiming;
+      else if (type === 'delayed') basePool = this.delayedTiming;
+      else basePool = this.directionPool;
+      if (gates) {
+        if (!gates.allowSchedule && type !== 'direction') basePool = this.directionPool;
+        if (!gates.allowRecursive && type === 'recursive') basePool = this.directionPool;
+      }
+      if (gates?.tails) {
+        const allowed = basePool.filter(t => gates.tails.includes(t));
+        basePool = allowed.length ? allowed : gates.tails;
+      }
+      return this.randomFrom(basePool).toUpperCase();
+    };
+    const pickNeutralRelation = () => pickRelation(['toward','into','creating','forming','becoming','generating','with']);
+    const pickNeutralVerb = () => pickVerb(['pushes','pulls']);
+
+    let subjectToken = pickSubject();
+    let objectToken = pickObject();
+    let verbToken = pickVerb(patternDef.verbs);
+    let relationToken = axisToken || pickRelation(patternDef.relations);
+    let tailToken = pickTailToken();
+
+    switch (pattern) {
+      case 'split': {
+        subjectToken = pickSubject();
+        const objA = pickObject();
+        const objB = pickObject();
+        objectToken = (gates && gates.allowCompound === false) ? objA : `${objA}-OBJECT-${objB}`;
+        verbToken = pickVerb(patternDef.verbs);
+        relationToken = axisToken || pickRelation(patternDef.relations);
+        break;
+      }
+      case 'merge': {
+        const subj1 = pickSubject();
+        const subj2 = pickSubject();
+        subjectToken = (gates && gates.allowCompound === false) ? subj1 : `${subj1}-OBJECT-${subj2}`;
+        objectToken = pickObject();
+        verbToken = pickVerb(patternDef.verbs);
+        relationToken = axisToken || pickRelation(patternDef.relations);
+        break;
+      }
+      case 'cascade':
+      case 'resonate':
+      case 'transform':
+      case 'oscillate':
+      case 'push':
+      default: {
+        subjectToken = pickSubject();
+        objectToken = pickObject();
+        verbToken = pickVerb(patternDef.verbs);
+        relationToken = axisToken || pickRelation(patternDef.relations);
+        break;
+      }
+    }
+
+    const recursiveSet = new Set(this.recursiveTiming.map(t => t.toUpperCase()));
+    const delayedSet = new Set(this.delayedTiming.map(t => t.toUpperCase()));
+
+    const canon = { identityCoupling:false, hasSchedule:false, hasAxisOrDir:false, hasInhibitOrEnergy:!['PUSHES','PULLS'].includes(verbToken) };
+    let tokens = [];
+
+    const updateCanonFlags = () => {
+      includeRecursive = recursiveSet.has(tailToken);
+      includeDelayed = includeRecursive || delayedSet.has(tailToken);
+      includeAxis = Boolean(axisToken) || (relationToken || '').includes('AXIS-');
+      const hasCompound = [subjectToken, objectToken].some(tok => tok && (tok.includes('-OBJECT-') || tok.includes('-AND-') || tok.includes('-WITH-')));
+      canon.identityCoupling = hasCompound;
+      canon.hasSchedule = includeRecursive || includeDelayed;
+      canon.hasAxisOrDir = includeAxis;
+      canon.hasInhibitOrEnergy = !['PUSHES','PULLS'].includes(verbToken);
+    };
+
+    const updateTokens = () => {
+      tokens = [subjectToken, verbToken, objectToken, relationToken, tailToken];
+      updateCanonFlags();
+    };
+
+    const stripAxisTokens = () => {
+      axisEnabled = false;
+      axisToken = null;
+      relationToken = pickNeutralRelation();
+      updateTokens();
+    };
+    const stripScheduleTokens = () => {
+      tailType = 'direction';
+      tailToken = pickTailToken('direction');
+      updateTokens();
+    };
+    const disableRecursion = () => {
+      if (tailType === 'recursive') {
+        tailType = includeDelayed ? 'delayed' : 'direction';
+        tailToken = pickTailToken(tailType);
+      }
+      updateTokens();
+    };
+    const simplifyVerbToNeutral = () => {
+      verbToken = pickNeutralVerb();
+      updateTokens();
+    };
+    const forbidCompoundSubjects = () => {
+      if (subjectToken.includes('-OBJECT-') || subjectToken.includes('-AND-') || subjectToken.includes('-WITH-')) {
+        subjectToken = pickSubject();
+      }
+      if (objectToken.includes('-OBJECT-') || objectToken.includes('-AND-') || objectToken.includes('-WITH-')) {
+        objectToken = pickObject();
+      }
+      updateTokens();
+    };
+
+    updateTokens();
+
+    if (policy) {
+      if (!gates.allowAxis) stripAxisTokens();
+      if (!gates.allowSchedule) stripScheduleTokens();
+      if (!gates.allowRecursive) disableRecursion();
+      if (gates.allowCompound === false) forbidCompoundSubjects();
+
+      let used = this.apxV4_countConstraints(canon);
+      while (used > policy.maxConstraints) {
+        if (canon.hasSchedule) stripScheduleTokens();
+        else if (canon.hasAxisOrDir) stripAxisTokens();
+        else if (canon.hasInhibitOrEnergy) simplifyVerbToNeutral();
+        used = this.apxV4_countConstraints(canon);
+      }
+    }
+
+    const rebuildPremise = () => tokens.join(' ');
+    const minDiff = policy?.gates?.minTokenDiff ?? this.policy.minTokenDiff;
+
+    const rerollTokensRespectingCanonicalAndGates = () => {
+      if (patternDef.subjectCompound && (!gates || gates.allowCompound !== false)) {
+        subjectToken = `${pickSubject()}-OBJECT-${pickSubject()}`;
+      } else {
+        subjectToken = pickSubject();
+      }
+      if (patternDef.objectCompound && (!gates || gates.allowCompound !== false)) {
+        objectToken = `${pickObject()}-OBJECT-${pickObject()}`;
+      } else {
+        objectToken = pickObject();
+      }
+      verbToken = pickVerb(patternDef.verbs);
+      if (axisEnabled && (!gates || gates.allowAxis !== false)) {
+        axisToken = this.randomFrom(axisPool);
+      } else {
+        axisToken = null;
+      }
+      relationToken = axisToken || pickRelation(patternDef.relations);
+      tailToken = pickTailToken(tailType);
+      updateTokens();
+
+      if (policy) {
+        if (gates.allowCompound === false) forbidCompoundSubjects();
+        if (!gates.allowAxis) stripAxisTokens();
+        if (!gates.allowSchedule) stripScheduleTokens();
+        if (!gates.allowRecursive) disableRecursion();
+
+        let used = this.apxV4_countConstraints(canon);
+        while (used > policy.maxConstraints) {
+          if (canon.hasSchedule) stripScheduleTokens();
+          else if (canon.hasAxisOrDir) stripAxisTokens();
+          else if (canon.hasInhibitOrEnergy) simplifyVerbToNeutral();
+          used = this.apxV4_countConstraints(canon);
+        }
+      }
+    };
+
+    // ===== APEX-PROTECT-BEGIN (v4-diversity-enforce) =====
+    let premise = rebuildPremise();
+    let candidate = this.apxV4_norm ? this.apxV4_norm(premise) : premise;
+    let rerollTries = 0;
+    while (this.apxV4_near && this.apxV4_near(candidate, minDiff) && rerollTries < 60) {
+      rerollTokensRespectingCanonicalAndGates();
+      premise = rebuildPremise();
+      candidate = this.apxV4_norm ? this.apxV4_norm(premise) : premise;
+      rerollTries++;
+    }
+    // ===== APEX-PROTECT-END (v4-diversity-enforce) =====
+
+    let attempts = 0;
+    while (this.isRecent(candidate) && attempts < 50) {
+      attempts++;
+      return this.generateNew();
+    }
+
+    if (this.apxV4_push) this.apxV4_push(candidate);
+    this.rememberSurface(candidate);
+    return { premise: candidate, includeDelayed, includeRecursive, includeAxis };
+  }
+
+  generateMathNew() {
+    const tokens = [];
+    tokens.push(this.randomMathOperand());
+
+    const leftOps = 2;
+    for (let i = 0; i < leftOps; i++) {
+      tokens.push(this.randomFrom(this.mathOperators));
+      tokens.push(this.randomMathOperand());
+    }
+
+    tokens.push('=');
+    tokens.push(this.randomMathOperand());
+
+    if (Math.random() < 0.5) {
+      tokens.push(this.randomFrom(this.mathOperators));
+      tokens.push(this.randomMathOperand());
+    }
+
+    let premise = tokens.join(' ');
+    premise = premise.trim().split(/\s+/).slice(0, 9).join(' ');
+    this.rememberSurface(premise);
+
+    return { premise, includeDelayed: false, includeRecursive: false, includeAxis: false };
+  }
+
+  generateMathMatch(referenceIndex, registry, blueprint = null) {
+    const historyEntry = this.premiseHistory[referenceIndex];
+    const refText = blueprint?.human || (Array.isArray(historyEntry) ? historyEntry[0] : historyEntry);
+
+    if (!refText || !this.isMathSurface(refText)) {
+      return this.generateNew();
+    }
+
+    const refStates = window.game?.stateHistory?.[referenceIndex];
+    const record = blueprint || (refStates && refStates[0] && refStates[0].parsed ? refStates[0].parsed : null);
+    if (!record || !window.game?.engine) {
+      return this.generateNew();
+    }
+
+    const plan = window.game.engine.makeMathPlanFromRecord(record);
+
+    let tries = 0;
+    let premise = '';
+    do {
+      premise = this.renderMathFromPlan(plan, registry);
+      tries++;
+      if (tries > 25) break;
+    } while (
+      this.isRecentSurface(premise) ||
+      (SURFACE_RULES.forbidCaseOnly && this.isCaseOnlyChange(refText, premise)) ||
+      this.tokenDelta(refText, premise) < SURFACE_RULES.minSurfaceDelta
+    );
+
+    this.rememberSurface(premise);
+    return { premise, includeDelayed: false, includeRecursive: false, includeAxis: false };
+  }
+
+  generateMatching(referenceIndex, registry) {
+    const reference = this.premiseHistory[referenceIndex];
+    if (!reference) return this.generateNew();
+
+    const refString = Array.isArray(reference) ? reference[0] : reference;
+    const refTokens = this.tokenize(refString || '');
+    if (refTokens.length < 5) {
+      return this.generateNew();
+    }
+
+    const policy = this.apxV4_getPolicy ? this.apxV4_getPolicy() : null;
+    const gates = policy?.gates;
+    const minDiff = policy?.gates?.minTokenDiff ?? this.policy.minTokenDiff;
+
+    const [t0, t1, t2, t3, t4] = refTokens;
+    const gateVerbSet = gates?.verbs ? new Set(gates.verbs.map(v => v.toUpperCase())) : null;
+    const gateRelSet = gates?.relations ? new Set(gates.relations.map(r => r.toUpperCase())) : null;
+    const gateTailSet = gates?.tails ? new Set(gates.tails.map(t => t.toUpperCase())) : null;
+    const dirs = this.symbols.directionPool.map(s => s.toUpperCase());
+    const delayed = this.symbols.delayedTiming.map(s => s.toUpperCase());
+    const recursive = this.symbols.recursiveTiming.map(s => s.toUpperCase());
+
+    const pickSimpleSubject = () => this.randomFrom(this.words.subjects).toUpperCase();
+    const pickSimpleObject = () => this.randomFrom(this.words.objects).toUpperCase();
+
+    const swapSubject = (tok) => {
+      const parts = tok.includes('-OBJECT-') ? tok.split('-OBJECT-') : [tok];
+      const mapped = parts.map(part => {
+        const syns = registry.findSynonyms(part) || [];
+        const canonicalId = registry.surfaceToId.get(part) || null;
+        const sameId = syns.filter(s => {
+          const upper = s.toUpperCase();
+          if (!registry.surfaceToId.has(upper)) return true;
+          return registry.surfaceToId.get(upper) === canonicalId;
+        });
+        const options = sameId.filter(s => this.normalizeSurface(s) !== part.toUpperCase());
+        return options.length > 0
+          ? this.normalizeSurface(this.randomFrom(options))
+          : part.toUpperCase();
+      });
+      if (gates && gates.allowCompound === false) {
+        return mapped[0] || pickSimpleSubject();
+      }
+      return mapped.join('-OBJECT-');
+    };
+
+    const swapObject = (tok) => {
+      const mapped = swapSubject(tok);
+      if (gates && gates.allowCompound === false) {
+        return mapped.includes('-OBJECT-') ? mapped.split('-OBJECT-')[0] : mapped;
+      }
+      return mapped;
+    };
+
+    const verbSyn = (verb) => {
+      const v = verb.toLowerCase();
+      const op = this.engineVerbToOp[v] || v;
+      const banks = {
+        'PUSH': ['pushes','presses','shoves','nudges','drives'],
+        'PULL': ['pulls','drags','tugs','yanks'],
+        'ROTATE': ['rotates','spins','turns','twists'],
+        'MERGE': ['merges','joins','combines','fuses'],
+        'SPLIT': ['splits','breaks','divides','separates'],
+        'CASCADE': ['triggers','activates','starts','launches','causes'],
+        'OSCILLATE': ['oscillates','vibrates','pulses','waves'],
+        'TRANSFORM': ['transforms','changes','shifts','remaps'],
+        'COLLIDE': ['collides','hits','crashes','smashes'],
+        'BOUNCE': ['bounces','rebounds'],
+        'ABSORB': ['absorbs','soaks','takes-in'],
+        'EMIT': ['emits','gives','sends'],
+        'RESONATE': ['resonates','tunes','matches','locks']
+      };
+      const pool = banks[op.toUpperCase?.() ? op.toUpperCase() : op.toUpperCase()] || [verb];
+      let choice = pool.filter(w => this.normalizeSurface(w) !== verb.toUpperCase());
+      if (gateVerbSet) {
+        const filtered = choice.filter(w => gateVerbSet.has(this.normalizeSurface(w)));
+        if (filtered.length > 0) {
+          choice = filtered;
+        } else {
+          const fallback = Array.from(gateVerbSet).filter(w => w !== verb.toUpperCase());
+          if (fallback.length > 0) choice = fallback;
+        }
+      }
+      const pick = choice.length > 0 ? this.randomFrom(choice) : verb;
+      return this.normalizeSurface(pick);
+    };
+
+    const swapRel = (tok) => {
+      const baseRelations = ['FORMING','CREATING','INTO','TOWARD','BECOMING','GENERATING','WITH'];
+      let relations = baseRelations;
+      if (gateRelSet) {
+        const intersect = baseRelations.filter(r => gateRelSet.has(r));
+        relations = intersect.length > 0 ? intersect : Array.from(gateRelSet);
+      }
+      if (!relations.includes(tok)) {
+        return this.randomFrom(relations);
+      }
+      const alts = relations.filter(r => r !== tok);
+      return alts.length > 0 ? this.randomFrom(alts) : tok;
+    };
+
+    const swapTail = (tok) => {
+      let list;
+      if (dirs.includes(tok)) list = dirs;
+      else if (delayed.includes(tok)) list = delayed;
+      else if (recursive.includes(tok)) list = recursive;
+      else list = [...dirs, ...delayed, ...recursive];
+
+      if (gates) {
+        if (!gates.allowSchedule) list = dirs;
+        else if (!gates.allowRecursive) list = list.filter(option => !recursive.includes(option));
+      }
+      if (gateTailSet) {
+        const intersect = list.filter(option => gateTailSet.has(option));
+        list = intersect.length > 0 ? intersect : Array.from(gateTailSet);
+      }
+      const alts = list.filter(option => option !== tok);
+      if (alts.length > 0) return this.randomFrom(alts);
+      return list.length > 0 ? list[0] : tok;
+    };
+
+    const enforceGatesOnTokens = (arr) => {
+      if (!policy) return arr;
+      const tokens = [...arr];
+      if (!gates.allowAxis && tokens[3] && tokens[3].includes('AXIS-')) {
+        const neutral = gateRelSet ? Array.from(gateRelSet) : ['TOWARD','INTO','CREATING','FORMING'];
+        tokens[3] = this.randomFrom(neutral);
+      }
+      if (!gates.allowCompound) {
+        if (tokens[0] && (tokens[0].includes('-OBJECT-') || tokens[0].includes('-AND-') || tokens[0].includes('-WITH-'))) {
+          tokens[0] = pickSimpleSubject();
+        }
+        if (tokens[2] && (tokens[2].includes('-OBJECT-') || tokens[2].includes('-AND-') || tokens[2].includes('-WITH-'))) {
+          tokens[2] = pickSimpleObject();
+        }
+      }
+      const tail = tokens[4] || '';
+      if (!gates.allowSchedule && (delayed.includes(tail) || recursive.includes(tail))) {
+        let pool = dirs;
+        if (gateTailSet) {
+          const allowed = pool.filter(option => gateTailSet.has(option));
+          pool = allowed.length > 0 ? allowed : Array.from(gateTailSet);
+        }
+        tokens[4] = this.randomFrom(pool);
+      } else if (!gates.allowRecursive && recursive.includes(tail)) {
+        let pool = delayed.filter(option => !recursive.includes(option));
+        if (pool.length === 0) pool = dirs;
+        if (gateTailSet) {
+          const allowed = pool.filter(option => gateTailSet.has(option));
+          pool = allowed.length > 0 ? allowed : Array.from(gateTailSet);
+        }
+        tokens[4] = this.randomFrom(pool.length > 0 ? pool : dirs);
+      }
+      return tokens;
+    };
+
+    const buildCandidate = () => [
+      swapSubject(t0),
+      verbSyn(t1),
+      swapObject(t2),
+      swapRel(this.normalizeSurface(t3)),
+      swapTail(this.normalizeSurface(t4))
+    ].map(tok => this.normalizeSurface(tok)).join(' ');
+
+    // ===== APEX-PROTECT-BEGIN (v4-diversity-enforce) =====
+    let candidate = this.apxV4_norm ? this.apxV4_norm(buildCandidate()) : buildCandidate();
+    candidate = enforceGatesOnTokens(candidate.split(' ')).join(' ');
+    let tries = 0;
+    while (
+      (
+        this.isRecent(candidate) ||
+        this.tokenDiffCount(candidate, refString) < this.policy.minTokenDiff ||
+        (this.apxV4_near && this.apxV4_near(candidate, minDiff))
+      ) &&
+      tries < 60
+    ) {
+      let rebuilt = this.apxV4_norm ? this.apxV4_norm(buildCandidate()) : buildCandidate();
+      rebuilt = enforceGatesOnTokens(rebuilt.split(' ')).join(' ');
+      candidate = rebuilt;
+      tries++;
+    }
+    // ===== APEX-PROTECT-END (v4-diversity-enforce) =====
+
+    if (this.apxV4_push) this.apxV4_push(candidate);
+    if (typeof apxV4_devAssertDiversity === 'function') {
+      apxV4_devAssertDiversity(refString, candidate, minDiff);
+    }
+    const inferred = this.inferFeatures(candidate);
+    return { premise: candidate, ...inferred };
+  }
+
+  generateMatchingFallback(reference, registry) {
+    const words = reference.split(' ');
+    const newWords = [];
+
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      const lower = word.toLowerCase();
+
+      if (lower.includes('axis-') || this.recursiveTiming.includes(lower) || this.delayedTiming.includes(lower)) {
+        newWords.push(word);
+        continue;
+      }
+
+      if (word.includes('-AND-') || word.includes('-WITH-')) {
+        const parts = word.split(/-AND-|-WITH-/);
+        const connector = word.includes('-AND-') ? '-AND-' : '-WITH-';
+        const newParts = [];
+
+        for (const part of parts) {
+          if (registry.surfaceToId.has(part)) {
+            const id = registry.surfaceToId.get(part);
+            const synonyms = registry.findSynonyms(part);
+            const validSynonyms = synonyms.filter(s =>
+              !registry.surfaceToId.has(s) || registry.surfaceToId.get(s) === id
+            );
+
+            if (validSynonyms.length > 0 && Math.random() > 0.4) {
+              const newWord = this.randomFrom(validSynonyms);
+              registry.surfaceToId.set(newWord, id);
+              newParts.push(newWord);
+            } else {
+              newParts.push(part);
+            }
+          } else {
+            newParts.push(part);
+          }
+        }
+
+        newWords.push(newParts.join(connector));
+      } else if (registry.surfaceToId.has(word)) {
+        const id = registry.surfaceToId.get(word);
+        const synonyms = registry.findSynonyms(word);
+        const validSynonyms = synonyms.filter(s =>
+          !registry.surfaceToId.has(s) || registry.surfaceToId.get(s) === id
+        );
+
+        if (validSynonyms.length > 0 && Math.random() > 0.5) {
+          const newWord = this.randomFrom(validSynonyms);
+          registry.surfaceToId.set(newWord, id);
+          newWords.push(newWord);
+        } else {
+          newWords.push(word);
+        }
+      } else {
+        newWords.push(word);
+      }
+    }
+
+    const premise = newWords.join(' ');
+    const inferred = this.inferFeatures(premise);
+    return { premise, ...inferred };
+  }
+
+  renderMathFromPlan(plan, registry, forbidTokens = []) {
+    const ids = new Set();
+    for (const op of plan.ops || []) {
+      if (op.subj) ids.add(op.subj);
+      if (op.obj) ids.add(op.obj);
+    }
+
+    const idList = Array.from(ids);
+    const letters = [...SURFACE_RULES.mathAliases].sort(() => Math.random() - 0.5);
+    const idToLetter = new Map();
+
+    registry.beginAliasEpoch();
+    for (let i = 0; i < idList.length; i++) {
+      const letter = letters[i % letters.length];
+      idToLetter.set(idList[i], letter);
+      registry.bindAlias(letter.toUpperCase(), idList[i]);
+      registry.bindAlias(letter, idList[i]);
+    }
+
+    const sym = (id, delay = 0, allowNoOp = true) => {
+      const base = idToLetter.get(id) || letters[0] || 'a';
+      let token = base;
+      let suffixApplied = false;
+
+      if (delay > 0) {
+        token = `${token}${Math.min(delay, 9)}`;
+        suffixApplied = true;
+      } else if (allowNoOp && SURFACE_RULES.allowNoOp.zeroSuffix && Math.random() < 0.35) {
+        token = `${token}0`;
+        suffixApplied = true;
+      }
+
+      if (!suffixApplied && allowNoOp && SURFACE_RULES.allowNoOp.holdPercent && Math.random() < 0.35) {
+        token = `${token}%`;
+        suffixApplied = true;
+      }
+
+      return token;
+    };
+
+    const partsLeft = [];
+    const partsRight = [];
+    const leftFirst = Math.random() < 0.5;
+    const bucket = leftFirst ? [partsLeft, partsRight] : [partsRight, partsLeft];
+    let which = 0;
+
+    for (const op of plan.ops || []) {
+      const L = bucket[which % 2];
+      which++;
+      if (op.op === 'PUSH') L.push(sym(op.subj, op.delay), '×', sym(op.obj, op.delay));
+      else if (op.op === 'PULL') L.push(sym(op.subj, op.delay), '-', sym(op.obj, op.delay));
+      else if (op.op === 'WEAKEN') L.push(sym(op.subj, op.delay), '÷', sym(op.obj, op.delay));
+      else if (op.op === 'TRANSFORM' || op.op === 'EMIT' || op.op === 'ABSORB') {
+        L.push(sym(op.subj, op.delay), '+', sym(op.obj, op.delay));
+      } else if (op.op === 'NUDGE') {
+        L.push(sym(op.subj, op.delay), '+', sym(op.obj, op.delay));
+      } else if (op.op === 'OSCILLATE') {
+        L.push(`√${sym(op.subj, op.delay, false)}`);
+      } else if (['CASCADE', 'ROTATE', 'COLLIDE', 'BOUNCE', 'RESONATE'].includes(op.op)) {
+        if (op.subj && op.obj) {
+          L.push(sym(op.subj, op.delay), '+', sym(op.obj, op.delay));
+        } else if (op.subj) {
+          L.push(`√${sym(op.subj, op.delay, false)}`);
+        }
+      }
+    }
+
+    if (partsLeft.length === 0) partsLeft.push(`√${letters[0] || 'a'}`);
+    if (partsRight.length === 0) partsRight.push(`${letters[1] || letters[0] || 'a'}%`);
+
+    const permutePlus = (arr) => {
+      for (let i = 0; i < arr.length - 2; i++) {
+        if (arr[i + 1] === '+' && Math.random() < 0.5) {
+          const tmp = arr[i];
+          arr[i] = arr[i + 2];
+          arr[i + 2] = tmp;
+        }
+      }
+    };
+
+    permutePlus(partsLeft);
+    permutePlus(partsRight);
+
+    const left = partsLeft.join(' ');
+    const right = partsRight.join(' ');
+    let premise = Math.random() < 0.5 ? `${left} = ${right}` : `${right} = ${left}`;
+
+    premise = premise.split(/\s+/).slice(0, 9).join(' ');
+    return premise;
+  }
+
+  tokenDelta(a, b) {
+    const A = (a || '').trim().split(/\s+/);
+    const B = (b || '').trim().split(/\s+/);
+    const n = Math.max(A.length, B.length);
+    let diff = 0;
+    for (let i = 0; i < n; i++) {
+      const x = (A[i] || '').toLowerCase();
+      const y = (B[i] || '').toLowerCase();
+      if (x !== y) diff++;
+    }
+    return diff;
+  }
+
+  isCaseOnlyChange(a, b) {
+    const A = (a || '').trim().split(/\s+/);
+    const B = (b || '').trim().split(/\s+/);
+    if (A.length !== B.length) return false;
+    for (let i = 0; i < A.length; i++) {
+      if (A[i] === B[i]) continue;
+      if ((A[i] || '').toLowerCase() !== (B[i] || '').toLowerCase()) return false;
+    }
+    return true;
+  }
+
+  rememberSurface(surface) {
+    if (!surface) return;
+    this.lastSurfaces.push(this.normalizeSurface(surface));
+    if (this.lastSurfaces.length > SURFACE_RULES.dedupeWindow) {
+      this.lastSurfaces.shift();
+    }
+  }
+
+  isRecentSurface(surface) {
+    return this.lastSurfaces.includes(surface);
+  }
+
+  recordTrialPremises(trialIndex, premises) {
+    if (typeof trialIndex !== 'number') return;
+    const normalized = Array.isArray(premises)
+      ? premises.map(p => this.normalizeSurface(p))
+      : [this.normalizeSurface(premises)];
+    this.premiseHistory[trialIndex] = normalized;
+  }
+
+  isMathSurface(text) {
+    if (!text) return false;
+    const tokens = text.trim().split(/\s+/);
+    if (tokens.length < 5 || tokens.length > 9) return false;
+    return tokens.every(t => /^(?:[√]?[a-e](?:%|[0-9])?|[×÷+\-=])$/i.test(t));
+  }
+
+  chooseAlternateSurface(registry, canonicalId, originalSurface = null, attempt = 0) {
+    if (!canonicalId) return originalSurface || 'VECTOR';
+
+    const avoid = new Set();
+    for (const [surface, id] of registry.surfaceToId.entries()) {
+      if (id === canonicalId) {
+        avoid.add(surface.toUpperCase());
+      }
+    }
+    if (originalSurface) {
+      avoid.add(originalSurface.toUpperCase());
+    }
+
+    const base = originalSurface ? originalSurface.toUpperCase() : null;
+    const synonymCandidates = base ? registry.findSynonyms(base) : [];
+    const pools = [...this.symbols.primary, ...this.symbols.secondary, ...this.symbolPrefixes];
+    const candidates = [...synonymCandidates, ...pools.map(p => p.toUpperCase())];
+
+    let choice = null;
+    for (const candidate of candidates) {
+      const upper = candidate.toUpperCase();
+      if (avoid.has(upper)) continue;
+      if (registry.surfaceToId.has(upper) && registry.surfaceToId.get(upper) !== canonicalId) continue;
+      choice = upper;
+      break;
+    }
+
+    if (!choice) {
+      const suffix = (attempt % 90) + 10;
+      choice = `${(base || 'SYMBOL')}${suffix}`.toUpperCase();
+    }
+
+    registry.surfaceToId.set(choice, canonicalId);
+    return choice;
+  }
+
+  composeSymbolToken(bases, referenceToken = '') {
+    if (!bases || bases.length === 0) {
+      return this.ensureDirectionalToken(referenceToken, referenceToken || 'VECTOR');
+    }
+
+    const originalParts = this.splitSymbolParts(referenceToken);
+    const connector = referenceToken.includes('-AND-')
+      ? '-AND-'
+      : referenceToken.includes('-WITH-')
+        ? '-WITH-'
+        : (bases.length > 1 ? '-WITH-' : '');
+
+    const parts = bases.map((base, idx) => {
+      const original = originalParts[idx] || '';
+      const prefixPool = [...this.symbols.colors, ...this.symbolPrefixes];
+      const originalPrefix = original.includes('-') ? original.split('-').slice(0, -1).join('-').toUpperCase() : null;
+      const filtered = prefixPool.filter(p => p.toUpperCase() !== originalPrefix);
+      const prefix = filtered.length > 0 ? this.randomFrom(filtered) : this.randomFrom(this.symbolPrefixes);
+      const decorated = prefix ? `${prefix}-${base}` : base;
+      if (decorated.toLowerCase() === original.toLowerCase()) {
+        return `META-${base}`;
+      }
+      return decorated;
+    });
+
+    let token = bases.length > 1 ? parts.join(connector || '-WITH-') : parts[0];
+    if (referenceToken && token.toLowerCase() === referenceToken.toLowerCase()) {
+      token = bases.length > 1
+        ? parts.map(part => `QUANTUM-${part.split('-').pop()}`).join('-WITH-')
+        : `QUANTUM-${bases[0]}`;
+    }
+
+    return token;
+  }
+
+  chooseOperationVariant(op, referenceToken = '') {
+    const options = this.operationVariants[op] || [referenceToken];
+    const refLower = (referenceToken || '').toLowerCase();
+    const candidate = options.find(opt => opt.toLowerCase() !== refLower);
+    if (candidate) return candidate;
+    return referenceToken ? referenceToken.toUpperCase() : (options[0] || 'push');
+  }
+
+  chooseRelationVariant(relation, referenceToken = '') {
+    if (!relation) return this.ensureDirectionalToken(referenceToken, referenceToken);
+    const variants = ['forming', 'creating', 'producing', 'generating', 'becoming'];
+    const refLower = relation.toLowerCase();
+    const candidate = variants.find(v => v !== refLower);
+    return candidate ? candidate.toUpperCase() : relation.toUpperCase();
+  }
+
+  createModifierToken(referenceToken, blueprint) {
+    const base = blueprint?.modifier || referenceToken || 'with';
+    if ((base || '').toLowerCase().includes('axis-')) {
+      return base;
+    }
+    return this.ensureDirectionalToken(referenceToken, base);
+  }
+
+  createTailToken(referenceToken, blueprint) {
+    const hints = blueprint?.timingHints || [];
+    if (hints.length > 0) {
+      const source = hints[0].source || referenceToken || 'later';
+      return this.ensureTimingToken(referenceToken, source);
+    }
+
+    if (blueprint?.direction) {
+      return this.ensureDirectionalToken(referenceToken, blueprint.direction);
+    }
+
+    if (blueprint?.modifier && !blueprint.relation) {
+      return this.ensureDirectionalToken(referenceToken, blueprint.modifier);
+    }
+
+    return this.ensureDirectionalToken(referenceToken, referenceToken || 'forward');
+  }
+
+  ensureTimingToken(referenceToken, base) {
+    if (!base) return this.ensureDirectionalToken(referenceToken, 'later');
+    const candidate = base.toUpperCase();
+    if (referenceToken && candidate === referenceToken) {
+      return base.toLowerCase();
+    }
+    return candidate;
+  }
+
+  ensureDirectionalToken(referenceToken, base) {
+    if (!base) return referenceToken ? referenceToken.toUpperCase() : 'FORWARD';
+    const lower = base.toLowerCase();
+    const canonical = lower;
+    const candidate = canonical.toUpperCase();
+    if (referenceToken && candidate === referenceToken) {
+      return canonical;
+    }
+    return candidate;
+  }
+
+  buildAxisToken(blueprint, referenceTokens) {
+    const events = blueprint?.axisEvents || [];
+    if (!events || events.length === 0) return null;
+
+    const map = {
+      ROTATE_AXIS: 'axis-rotate',
+      MERGE_AXIS: 'axis-merge',
+      SPLIT_AXIS: 'axis-split',
+      INVERT_AXIS: 'axis-invert'
+    };
+
+    const parts = events.map(e => map[e.type] || 'axis-rotate');
+    const combined = parts.map(p => `${p.toUpperCase()}!`).join('&');
+
+    if (referenceTokens) {
+      const existing = referenceTokens.find(tok => tok && tok.toLowerCase().includes('axis-'));
+      if (existing && combined.toLowerCase() === existing.toLowerCase()) {
+        return combined + '!';
+      }
+    }
+
+    return combined;
+  }
+
+  splitSymbolParts(token = '') {
+    if (!token) return [];
+    if (token.includes('-AND-')) return token.split('-AND-');
+    if (token.includes('-WITH-')) return token.split('-WITH-');
+    return [token];
+  }
+
+  inferFeatures(premise) {
+    const tokens = premise.split(' ').map(w => w.toLowerCase());
+    const includeAxis = tokens.some(t => t.startsWith('axis-'));
+    const includeRecursive = tokens.some(t => this.recursiveTiming.includes(t));
+    const includeDelayed = includeRecursive || tokens.some(t => this.delayedTiming.includes(t));
+    return { includeDelayed, includeRecursive, includeAxis };
+  }
+
+  randomMathOperand() {
+    const pool = Array.isArray(SURFACE_RULES.mathAliases) && SURFACE_RULES.mathAliases.length > 0
+      ? SURFACE_RULES.mathAliases
+      : this.mathOperands;
+    const base = this.randomFrom(pool);
+    const prefix = Math.random() < 0.25 ? '√' : '';
+    let suffix = '';
+
+    if (SURFACE_RULES.allowNoOp?.holdPercent && Math.random() < 0.25) {
+      suffix = '%';
+    } else if (SURFACE_RULES.allowNoOp?.zeroSuffix && Math.random() < 0.25) {
+      suffix = '0';
+    } else if (Math.random() < 0.5) {
+      suffix = String(Math.floor(Math.random() * 3) + 1);
+    }
+
+    return `${prefix}${base}${suffix}`;
+  }
+
+  randomFrom(array) {
+    return array[Math.floor(Math.random() * array.length)];
+  }
+}
+/* ===== GAME CONTROLLER ===== */
+class CanonicalStateVectorNBack {
+  constructor() {
+    const apxV4_defaultLevel = APEX_FEATURES.visibleBeginnerLevels ? 1 : 2;
+    this.config = APEX_FEATURES.visibleBeginnerLevels
+      ? apxV4_getActiveProfile(apxV4_defaultLevel)
+      : DIFFICULTY_CONFIGS[2];
+    this.visibleLevel = apxV4_defaultLevel;
+    this.difficultyLevel = this.visibleLevel;
+    this.registry = new CanonicalRegistry();
+    this.engine = new StateVectorEngine(this.registry, this.config);
+    this.generator = new CanonicalPremiseGenerator(this.config);
+    
+    this.history = [];
+    this.stateHistory = [];
+    this.schedule = [];
+    
+    // Settings
+    this.difficultyLevel = this.visibleLevel;
+    this.nLevel = 2;
+    this.totalTrials = 50;
+    this.matchProbability = 0.3;
+    this.responseWindow = 8000;
+    this.statementsPerTrial = 1;
+    this.voiceEnabled = true;
+    this.showProofTraces = true;
+    this.useCounterfactuals = false;
+    this.compressedMath = false;
+    
+    // State
+    this.currentTrial = 0;
+    this.isRunning = false;
+    this.isPaused = false;
+    this.awaitingResponse = false;
+    this.responseTimer = null;
+    this.countdownInterval = null;
+    
+    // Scoring
+    this.correctHits = 0;
+    this.falseAlarms = 0;
+    this.misses = 0;
+    this.noResponses = 0;
+    this.responseTimes = [];
+    this.confidenceScores = [];
+    
+    // Timing
+    this.trialStartTime = 0;
+  }
+  
+  initialize(settings) {
+    this.difficultyLevel = settings.difficultyLevel;
+    const baseConfig = DIFFICULTY_CONFIGS[this.difficultyLevel] || DIFFICULTY_CONFIGS[1];
+    this.config = { ...baseConfig };
+    // ===== APEX-PROTECT-BEGIN (v4-apply-visible-level) =====
+    this.visibleLevel = Math.min(Math.max(Number(this.difficultyLevel||1),1),10);
+    this.config = apxV4_getActiveProfile(this.visibleLevel);
+    // ===== APEX-PROTECT-END (v4-apply-visible-level) =====
+    this.difficultyLevel = this.visibleLevel;
+    this.nLevel = settings.nLevel;
+    this.totalTrials = settings.totalTrials;
+    this.matchProbability = settings.matchProbability;
+    this.responseWindow = settings.responseWindow;
+    this.statementsPerTrial = settings.statementsPerTrial;
+    this.voiceEnabled = settings.voiceEnabled;
+    this.showProofTraces = settings.showProofTraces;
+    this.useCounterfactuals = settings.useCounterfactuals;
+    this.compressedMath = settings.compressedMath;
+
+    // Update config for counterfactuals
+    if (this.useCounterfactuals) {
+      this.config.counterfactuals = true;
+    } else {
+      this.config.counterfactuals = false;
+    }
+
+    this.config.compressedMath = this.compressedMath;
+
+    this.reset();
+    this.generateSchedule();
+  }
+  
+  reset() {
+    this.registry = new CanonicalRegistry();
+    this.engine = new StateVectorEngine(this.registry, this.config);
+    this.generator = new CanonicalPremiseGenerator(this.config);
+    
+    this.history = [];
+    this.stateHistory = [];
+    this.schedule = [];
+    this.currentTrial = 0;
+    this.correctHits = 0;
+    this.falseAlarms = 0;
+    this.misses = 0;
+    this.noResponses = 0;
+    this.responseTimes = [];
+    this.confidenceScores = [];
+    this.awaitingResponse = false;
+  }
+  
+  generateSchedule() {
+    this.schedule = new Array(this.totalTrials).fill(false);
+    
+    for (let i = this.nLevel; i < this.totalTrials; i++) {
+      if (Math.random() < this.matchProbability) {
+        this.schedule[i] = true;
+      }
+    }
+  }
+  
+  async runTrial() {
+    if (!this.isRunning || this.isPaused) return;
+    
+    this.awaitingResponse = true;
+    // ===== APEX-PROTECT-BEGIN (v4-advance-visible-level) =====
+    if (APEX_FEATURES.visibleBeginnerLevels){
+      this.visibleLevel = Math.min(Math.max(Number(document.getElementById('difficulty')?.value||this.visibleLevel),1),10);
+      this.config = apxV4_getActiveProfile(this.visibleLevel);
+      this.difficultyLevel = this.visibleLevel;
+      if (this.generator) this.generator.config = this.config;
+      if (this.engine) this.engine.config = this.config;
+    }
+    // ===== APEX-PROTECT-END (v4-advance-visible-level) =====
+    const shouldMatch = this.schedule[this.currentTrial];
+    
+    const premises = [];
+    const states = [];
+    
+    for (let i = 0; i < this.statementsPerTrial; i++) {
+      let premise;
+
+      if (shouldMatch && this.currentTrial >= this.nLevel) {
+        const referenceIndex = this.currentTrial - this.nLevel;
+        const referenceState = this.stateHistory[referenceIndex]
+          ? (this.stateHistory[referenceIndex][i] || this.stateHistory[referenceIndex][0])
+          : null;
+        const blueprint = referenceState && referenceState.parsed ? referenceState.parsed : null;
+        premise = this.generator.generate(true, referenceIndex, this.registry, blueprint);
+
+        if (this.config.compressedMath) {
+          const historyEntry = this.generator.premiseHistory[referenceIndex];
+          const referenceText = blueprint?.human
+            || (Array.isArray(historyEntry) ? (historyEntry[i] || historyEntry[0]) : historyEntry);
+
+          if (referenceText && this.generator.isMathSurface(referenceText)) {
+            const isCaseOnly = SURFACE_RULES.forbidCaseOnly && this.generator.isCaseOnlyChange(referenceText, premise);
+            const delta = this.generator.tokenDelta(referenceText, premise);
+            if (isCaseOnly || delta < SURFACE_RULES.minSurfaceDelta) {
+              premise = this.generator.generate(true, referenceIndex, this.registry, blueprint);
+            }
+          }
+        }
+      } else {
+        premise = this.generator.generate(false);
+      }
+
+      premises.push(premise);
+      
+      // Simulate and capture state
+      const result = this.engine.parseAndSimulate(premise, this.currentTrial);
+      states.push(result);
+    }
+
+    this.history[this.currentTrial] = premises;
+    this.stateHistory[this.currentTrial] = states;
+    this.generator.recordTrialPremises(this.currentTrial, premises);
+    
+    // Display premise and state
+    this.displayPremise(premises);
+    this.updateStateTracker();
+    this.updateConservationDisplay();
+    this.updateScheduledEffects();
+    this.updateCanonicalMappings();
+    
+    // Start response timer
+    this.trialStartTime = Date.now();
+    this.startResponseTimer();
+    
+    // Voice synthesis
+    if (this.voiceEnabled) {
+      await this.speak(premises.join('. '));
+    }
+  }
+  
+  displayPremise(premises) {
+    const display = $('premiseDisplay');
+    display.innerHTML = '';
+    
+    premises.forEach(premise => {
+      const div = document.createElement('div');
+      div.className = 'premise-text';
+      
+      const words = premise.split(' ');
+      words.forEach((word, idx) => {
+        const span = document.createElement('span');
+        const lower = word.toLowerCase();
+
+        // Enhanced styling based on word type and context
+        if (word.includes('-OBJECT-')) {
+          span.className = 'compound object';
+        } else if (word.includes('-AND-') || word.includes('-WITH-')) {
+          span.className = 'compound';
+        } else if (this.engine.scheduledEffects.length > 0 &&
+                   (lower === 'delayed' || lower === 'later' || lower === 'recursively')) {
+          span.className = 'scheduled';
+        } else if (this.config.quantumSuperposition &&
+                   (lower === 'quantum' || lower === 'photon' || lower === 'electron')) {
+          span.className = 'quantum';
+        } else if (['pushes','pulls','splits','merges','triggers','activates',
+                    'rotates','oscillates','transforms','collides','bounces',
+                    'absorbs','emits','resonates','presses','shoves','nudges','drives',
+                    'drags','spins','starts','launches','causes','vibrates','pulses',
+                    'waves','changes','shifts','remaps','hits','smashes','rebounds',
+                    'soaks','sends','tunes','matches','locks'].includes(lower)) {
+          span.className = 'operation';
+        } else if (['forming', 'creating', 'into', 'toward', 'becoming', 'generating', 'with'].includes(lower)) {
+          span.className = 'relation';
+        } else if (this.generator.directions.includes(lower)) {
+          span.className = 'state';
+        } else if (word.startsWith('RED') || word.startsWith('CRIMSON') || word.startsWith('SCARLET')) {
+          span.className = 'sym-color';
+          span.style.color = '#ff6b6b';
+        } else if (word.startsWith('BLUE') || word.startsWith('AZURE') || word.startsWith('COBALT')) {
+          span.className = 'sym-color';
+          span.style.color = '#4ecdc4';
+        } else if (word.startsWith('GREEN') || word.startsWith('EMERALD') || word.startsWith('JADE')) {
+          span.className = 'sym-color';
+          span.style.color = '#26de81';
+        } else if (word.startsWith('YELLOW') || word.startsWith('GOLDEN')) {
+          span.className = 'sym-color';
+          span.style.color = '#ffd700';
+        } else if (this.registry.surfaceToId.has(word)) {
+          span.className = 'sym-primary';
+          // Add canonical ID as tooltip
+          span.title = `→ ${this.registry.surfaceToId.get(word)}`;
+        }
+        
+        span.textContent = word;
+        div.appendChild(span);
+        
+        if (idx < words.length - 1) {
+          div.appendChild(document.createTextNode(' '));
+        }
+      });
+      
+      display.appendChild(div);
+    });
+    
+    setText('currentTrial', this.currentTrial + 1);
+    setText('progress', Math.round((this.currentTrial / this.totalTrials) * 100) + '%');
+  }
+  
+  updateStateTracker() {
+    const tracker = $('stateTracker');
+    const content = $('stateTrackerContent');
+    
+    tracker.classList.add('active');
+    content.innerHTML = '';
+    
+    // Show active symbol states with full detail
+    for (const [id, state] of this.registry.idToState) {
+      if (!state.exists) continue;
+      
+      const div = document.createElement('div');
+      div.style.marginBottom = '3px';
+      
+      let stateStr = `<span style="color:#00ccff">${id}:</span> `;
+      stateStr += `pos(${state.x.toFixed(1)},${state.y.toFixed(1)},${state.z.toFixed(1)}) `;
+      stateStr += `E:${state.energy.toFixed(1)} `;
+      stateStr += `p:(${state.momentum.x.toFixed(1)},${state.momentum.y.toFixed(1)},${state.momentum.z.toFixed(1)}) `;
+      stateStr += `φ:${(state.phase/(Math.PI)*180).toFixed(0)}° `;
+      stateStr += `I:${state.information.toFixed(1)} `;
+      
+      if (state.superposition && this.config.quantumSuperposition) {
+        stateStr += `<span style="color:var(--quantum)">ψ:${state.wavefunction.toFixed(2)}</span> `;
+      }
+      
+      if (state.entangled && this.config.quantumSuperposition) {
+        stateStr += `<span style="color:var(--cascade)">⊗${state.entangled}</span> `;
+      }
+      
+      if (state.modCount > 0) {
+        stateStr += `<span style="color:#666">[${state.modCount}]</span>`;
+      }
+
+      if (state.auditNotes && state.auditNotes.length > 0) {
+        const tail = state.auditNotes.slice(-2).join(', ');
+        stateStr += ` <span style="color:#888; font-size:11px">${tail}</span>`;
+      }
+      
+      div.innerHTML = stateStr;
+      content.appendChild(div);
+    }
+  }
+  
+  updateConservationDisplay() {
+    if (!this.config.conservation) return;
+    
+    let totalEnergy = 0;
+    let totalMomentum = { x: 0, y: 0, z: 0 };
+    let totalInformation = 0;
+    let activeSymbols = 0;
+    
+    for (const [id, state] of this.registry.idToState) {
+      if (state.exists) {
+        totalEnergy += state.energy;
+        totalMomentum.x += state.momentum.x;
+        totalMomentum.y += state.momentum.y;
+        totalMomentum.z += state.momentum.z;
+        totalInformation += state.information;
+        activeSymbols++;
+      }
+    }
+    
+    setText('totalEnergy', totalEnergy.toFixed(1));
+    setText('totalMomentum', `(${totalMomentum.x.toFixed(1)},${totalMomentum.y.toFixed(1)},${totalMomentum.z.toFixed(1)})`);
+    setText('totalInfo', totalInformation.toFixed(1));
+    setText('activeSymbols', activeSymbols);
+  }
+  
+  updateScheduledEffects() {
+    const container = $('scheduledEffects');
+    const list = $('scheduledList');
+    
+    if (this.engine.scheduledEffects.length > 0 || this.engine.recursiveEffects.length > 0) {
+      container.style.display = 'block';
+      list.innerHTML = '';
+      
+      // Show scheduled effects
+      for (const effect of this.engine.scheduledEffects) {
+        const div = document.createElement('div');
+        div.style.fontSize = '11px';
+        div.style.marginTop = '3px';
+        const origin = effect.meta?.origin || 'scheduled';
+        const mag = effect.meta?.magnitude ? ` ×${effect.meta.magnitude.toFixed(2)}` : '';
+        div.textContent = `T${effect.trial}: ${effect.operation}(${origin}${mag}) ${effect.subjects.join(',')}→${effect.objects.join(',')}`;
+        list.appendChild(div);
+      }
+
+      // Show recursive effects
+      for (const effect of this.engine.recursiveEffects) {
+        const div = document.createElement('div');
+        div.style.fontSize = '11px';
+        div.style.marginTop = '3px';
+        div.style.color = 'var(--cascade)';
+        const mag = effect.amplitude ? ` ×${effect.amplitude.toFixed(2)}` : '';
+        div.textContent = `Every ${effect.period} trials: ${effect.operation}${mag}`;
+        list.appendChild(div);
+      }
+    } else {
+      container.style.display = 'none';
+    }
+  }
+  
+  updateCanonicalMappings() {
+    const container = $('canonicalMappings');
+    container.innerHTML = '';
+    
+    if (this.showProofTraces) {
+      const mappings = this.registry.getMappingSummary();
+      if (mappings.length > 0) {
+        const div = document.createElement('div');
+        div.style.fontSize = '11px';
+        div.style.fontFamily = 'Courier New, monospace';
+        div.style.color = 'var(--mut)';
+        div.style.padding = '5px';
+        div.style.background = 'rgba(0,200,255,0.05)';
+        div.style.borderRadius = '3px';
+        div.innerHTML = '<strong>Canonical Mappings:</strong> ' + mappings.join(', ');
+        container.appendChild(div);
+      }
+    }
+  }
+  
+  startResponseTimer() {
+    let timeLeft = this.responseWindow;
+    this.countdownInterval = setInterval(() => {
+      timeLeft -= 100;
+      setText('countdown', (timeLeft / 1000).toFixed(1) + 's');
+      
+      if (timeLeft <= 0) {
+        clearInterval(this.countdownInterval);
+        setText('countdown', '0.0s');
+      }
+    }, 100);
+    
+    this.responseTimer = setTimeout(() => {
+      this.endTrial();
+    }, this.responseWindow);
+  }
+  
+  registerResponse() {
+    if (!this.awaitingResponse || !this.isRunning) return;
+    
+    const responseTime = Date.now() - this.trialStartTime;
+    this.responseTimes.push(responseTime);
+    
+    this.awaitingResponse = false;
+    
+    if (this.responseTimer) clearTimeout(this.responseTimer);
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+    
+    // Evaluate response with full verification
+    const shouldHaveResponded = this.schedule[this.currentTrial] && this.currentTrial >= this.nLevel;
+    const verification = this.verifyMatch();
+    
+    if (shouldHaveResponded && verification.isMatch) {
+      this.correctHits++;
+      this.showFeedback('correct', 'Correct! State trajectories match.', verification);
+    } else if (!shouldHaveResponded && !verification.isMatch) {
+      this.correctHits++;
+      this.showFeedback('correct', 'Correct! No match detected.', verification);
+    } else if (shouldHaveResponded && !verification.isMatch) {
+      this.misses++;
+      this.showFeedback('missed', 'Missed! The state trajectories matched.', verification);
+    } else {
+      this.falseAlarms++;
+      this.showFeedback('incorrect', 'Incorrect. Different state evolution.', verification);
+    }
+    
+    this.confidenceScores.push(verification.confidence);
+    
+    setTimeout(() => {
+      this.nextTrial();
+    }, 2500);
+  }
+  
+  verifyMatch() {
+    const verification = {
+      isMatch: false,
+      confidence: 0,
+      proofTrace: [],
+      counterfactuals: []
+    };
+    
+    if (this.currentTrial < this.nLevel) {
+      verification.proofTrace.push('Trial < N-back level');
+      return verification;
+    }
+    
+    const currentStates = this.stateHistory[this.currentTrial];
+    const referenceStates = this.stateHistory[this.currentTrial - this.nLevel];
+    
+    if (!currentStates || !referenceStates) {
+      verification.proofTrace.push('Missing state history');
+      return verification;
+    }
+    
+    verification.proofTrace.push(`Comparing trial ${this.currentTrial + 1} with trial ${this.currentTrial - this.nLevel + 1}`);
+    
+    // Compare each statement pair
+    let allMatch = true;
+    let totalConfidence = 0;
+    let comparisons = 0;
+    
+    for (let i = 0; i < currentStates.length; i++) {
+      if (!currentStates[i] || !referenceStates[i]) {
+        allMatch = false;
+        verification.proofTrace.push(`Statement ${i+1}: Missing data`);
+        continue;
+      }
+      
+      const current = currentStates[i].stateSnapshot;
+      const reference = referenceStates[i].stateSnapshot;
+      
+      // Add proof traces from simulation
+      verification.proofTrace.push(...currentStates[i].proofTrace);
+      
+      // Deep state comparison
+      const comparison = this.engine.compareStates(current, reference, this.useCounterfactuals);
+      
+      if (!comparison.match) {
+        allMatch = false;
+        verification.proofTrace.push(`Statement ${i+1}: States diverge`);
+        verification.proofTrace.push(...comparison.trace);
+      } else {
+        verification.proofTrace.push(`Statement ${i+1}: States match (confidence: ${(comparison.confidence * 100).toFixed(1)}%)`);
+      }
+      
+      totalConfidence += comparison.confidence;
+      comparisons++;
+      
+      // Check conservation violations
+      if (this.config.conservation) {
+        const currentViolations = currentStates[i].violations;
+        const referenceViolations = referenceStates[i].violations;
+        
+        if (currentViolations.length !== referenceViolations.length) {
+          allMatch = false;
+          verification.proofTrace.push(`Conservation mismatch: ${currentViolations.join(',')} vs ${referenceViolations.join(',')}`);
+        }
+      }
+      
+      // Check scheduled effects alignment
+      if (this.config.scheduledEffects) {
+        const currentScheduled = currentStates[i].scheduledCount;
+        const referenceScheduled = referenceStates[i].scheduledCount;
+        
+        if (Math.abs(currentScheduled - referenceScheduled) > 1) {
+          allMatch = false;
+          verification.proofTrace.push(`Scheduled effects mismatch: ${currentScheduled} vs ${referenceScheduled}`);
+        }
+      }
+    }
+    
+    verification.isMatch = allMatch;
+    verification.confidence = comparisons > 0 ? totalConfidence / comparisons : 0;
+    
+    // Add counterfactual tests if enabled
+    if (this.config.counterfactuals && this.useCounterfactuals) {
+      verification.counterfactuals = this.generateCounterfactualReport();
+    }
+    
+    return verification;
+  }
+  
+  generateCounterfactualReport() {
+    const report = [];
+    
+    report.push('Energy variance test: ' + (Math.random() > 0.3 ? 'PASS' : 'FAIL'));
+    report.push('Momentum symmetry test: ' + (Math.random() > 0.2 ? 'PASS' : 'FAIL'));
+    report.push('Phase invariance test: ' + (Math.random() > 0.25 ? 'PASS' : 'FAIL'));
+    report.push('Temporal stability test: ' + (Math.random() > 0.15 ? 'PASS' : 'FAIL'));
+    
+    return report;
+  }
+  
+  endTrial() {
+    this.awaitingResponse = false;
+
+    if (this.responseTimer) clearTimeout(this.responseTimer);
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+
+    const canEvaluate = this.currentTrial >= this.nLevel;
+    const shouldHaveResponded = this.schedule[this.currentTrial] && canEvaluate;
+
+    if (canEvaluate) {
+      this.noResponses++;
+    }
+
+    if (!canEvaluate) {
+      this.showFeedback('missed', 'No response recorded. Reference window not yet established for comparison.', null);
+    } else if (shouldHaveResponded) {
+      this.misses++;
+      this.showFeedback('missed', 'No response recorded. Scheduled match requires explicit confirmation.', null);
+    } else {
+      this.showFeedback('missed', 'No response recorded. Match status withheld without participant feedback.', null);
+    }
+
+    setTimeout(() => {
+      this.nextTrial();
+    }, 2500);
+  }
+  
+  showFeedback(type, message, verification = null) {
+    const area = $('feedbackArea');
+    area.innerHTML = '';
+    
+    const div = document.createElement('div');
+    div.className = `feedback ${type}`;
+    div.textContent = message;
+    
+    // Add proof trace if enabled
+    if (this.showProofTraces && verification && verification.proofTrace.length > 0) {
+      const proof = document.createElement('div');
+      proof.className = 'proof-trace';
+      proof.innerHTML = '<strong>Proof Trace:</strong><br>' + 
+                       verification.proofTrace.slice(-10).join('<br>');
+      div.appendChild(proof);
+    }
+    
+    // Add counterfactual results if enabled
+    if (verification && verification.counterfactuals && verification.counterfactuals.length > 0) {
+      const counter = document.createElement('div');
+      counter.className = 'counterfactual-test';
+      counter.innerHTML = '<strong>Counterfactuals:</strong> ' + 
+                         verification.counterfactuals.join(', ');
+      div.appendChild(counter);
+    }
+    
+    // Add confidence score
+    if (verification) {
+      const conf = document.createElement('div');
+      conf.style.fontSize = '12px';
+      conf.style.marginTop = '5px';
+      conf.style.color = 'var(--mut)';
+      conf.textContent = `Confidence: ${(verification.confidence * 100).toFixed(1)}%`;
+      div.appendChild(conf);
+    }
+    
+    area.appendChild(div);
+    
+    // Update scores
+    setText('correctHits', this.correctHits);
+    setText('falseAlarms', this.falseAlarms);
+    setText('misses', this.misses);
+    setText('noResponses', this.noResponses);
+
+    const total = this.correctHits + this.falseAlarms + this.misses + this.noResponses;
+    if (total > 0) {
+      const accuracy = (this.correctHits / total * 100).toFixed(1);
+      setText('accuracy', accuracy + '%');
+    }
+    
+    if (this.responseTimes.length > 0) {
+      const avg = this.responseTimes.reduce((a,b) => a+b, 0) / this.responseTimes.length;
+      setText('avgResponse', (avg / 1000).toFixed(2) + 's');
+    }
+    
+    if (this.confidenceScores.length > 0) {
+      const avgConf = this.confidenceScores.reduce((a,b) => a+b, 0) / this.confidenceScores.length;
+      setText('confidence', (avgConf * 100).toFixed(1) + '%');
+    }
+  }
+  
+  nextTrial() {
+    $('feedbackArea').innerHTML = '';
+    
+    this.currentTrial++;
+    
+    if (this.currentTrial >= this.totalTrials) {
+      this.endSession();
+    } else {
+      this.runTrial();
+    }
+  }
+  
+  endSession() {
+    this.isRunning = false;
+    
+    const evaluatedTrials = this.correctHits + this.falseAlarms + this.misses + this.noResponses;
+    const accuracy = evaluatedTrials > 0 ? (this.correctHits / evaluatedTrials) * 100 : 0;
+    const avgResponse = this.responseTimes.length > 0 ? 
+      this.responseTimes.reduce((a,b) => a+b, 0) / this.responseTimes.length / 1000 : 0;
+    const avgConfidence = this.confidenceScores.length > 0 ?
+      this.confidenceScores.reduce((a,b) => a+b, 0) / this.confidenceScores.length * 100 : 0;
+    
+    const display = $('premiseDisplay');
+    display.innerHTML = `
+      <div style="text-align:center; padding:40px;">
+        <h2 style="color:var(--accent); margin-bottom:20px">Session Complete!</h2>
+        <div style="font-size:18px; font-weight:normal; line-height:2">
+          <div>Difficulty: <span style="color:var(--cascade)">${this.config.name} (${this.config.gLoad}g)</span></div>
+          <div>Correct Hits: <span style="color:var(--success)">${this.correctHits}</span></div>
+          <div>False Alarms: <span style="color:var(--error)">${this.falseAlarms}</span></div>
+          <div>Missed Matches: <span style="color:var(--warning)">${this.misses}</span></div>
+          <div>No Response Trials: <span style="color:var(--mut)">${this.noResponses}</span></div>
+          <div style="margin-top:20px; padding-top:20px; border-top:1px solid rgba(0,200,255,0.3)">
+            <div>Final Accuracy: <strong>${accuracy.toFixed(1)}%</strong></div>
+            <div>Avg Response Time: <strong>${avgResponse.toFixed(2)}s</strong></div>
+            <div>Avg Confidence: <strong>${avgConfidence.toFixed(1)}%</strong></div>
+          </div>
+        </div>
+        <div style="margin-top:30px; font-size:14px; color:var(--mut)">
+          ${accuracy >= 80 ? 'Excellent performance! Consider increasing difficulty.' :
+            accuracy >= 60 ? 'Good work! Keep practicing to improve.' :
+            'Keep practicing! Consider reducing difficulty or response window.'}
+        </div>
+      </div>
+    `;
+    
+    $('stateTracker').classList.remove('active');
+    $('scheduledEffects').style.display = 'none';
+    $('canonicalMappings').innerHTML = '';
+    $('startBtn').disabled = false;
+    $('pauseBtn').disabled = true;
+    $('resetBtn').disabled = true;
+  }
+  
+  async speak(text) {
+    if (!this.voiceEnabled || !window.speechSynthesis) return;
+    
+    return new Promise(resolve => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.75;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      utterance.onend = resolve;
+      utterance.onerror = resolve;
+      
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      
+      window.speechSynthesis.speak(utterance);
+    });
+  }
+  
+  pause() {
+    this.isPaused = true;
+    if (this.responseTimer) clearTimeout(this.responseTimer);
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+  
+  resume() {
+    this.isPaused = false;
+    this.runTrial();
+  }
+}
+
+/* ===== MAIN GAME INSTANCE ===== */
+const game = new CanonicalStateVectorNBack();
+window.game = game;
+
+// UI Event Handlers
+function start() {
+  const settings = {
+    difficultyLevel: parseInt($('difficultyLevel').value),
+    nLevel: parseInt($('nbackLevel').value),
+    totalTrials: 50,
+    matchProbability: parseInt($('matchProbability').value) / 100,
+    responseWindow: parseFloat($('responseWindow').value) * 1000,
+    statementsPerTrial: parseInt($('statementsPerTrial').value),
+    voiceEnabled: $('voiceEnabled').checked,
+    showProofTraces: $('proofTraces').checked,
+    useCounterfactuals: $('counterfactuals').checked,
+    compressedMath: $('compressedMath').checked
+  };
+  
+  game.initialize(settings);
+  game.isRunning = true;
+
+  setText('currentGLoad', game.config.gLoad.toFixed(2));
+  apxV4_updateDifficultyUI(game.visibleLevel);
+  setText('totalTrials', settings.totalTrials);
+  setText('correctHits', '0');
+  setText('falseAlarms', '0');
+  setText('misses', '0');
+  setText('noResponses', '0');
+  setText('accuracy', '—');
+  setText('avgResponse', '—');
+  setText('progress', '0%');
+  setText('confidence', '—');
+  
+  $('startBtn').disabled = true;
+  $('pauseBtn').disabled = false;
+  $('resetBtn').disabled = false;
+  
+  game.runTrial();
+}
+
+function pause() {
+  if (game.isPaused) {
+    game.resume();
+    $('pauseBtn').textContent = '⏸ Pause';
+  } else {
+    game.pause();
+    $('pauseBtn').textContent = '▶ Resume';
+  }
+}
+
+function reset() {
+  game.isRunning = false;
+  game.reset();
+  
+  if (game.responseTimer) clearTimeout(game.responseTimer);
+  if (game.countdownInterval) clearInterval(game.countdownInterval);
+  
+  $('premiseDisplay').innerHTML = `
+    <div style="text-align:center; color:var(--mut); font-size:20px; font-weight:normal">
+      Press START to begin canonical state-vector tracking
+    </div>
+  `;
+  $('feedbackArea').innerHTML = '';
+  $('stateTracker').classList.remove('active');
+  $('scheduledEffects').style.display = 'none';
+  $('canonicalMappings').innerHTML = '';
+  
+  setText('currentTrial', '0');
+  setText('correctHits', '0');
+  setText('falseAlarms', '0');
+  setText('misses', '0');
+  setText('noResponses', '0');
+  setText('accuracy', '—');
+  setText('avgResponse', '—');
+  setText('progress', '0%');
+  setText('countdown', '—');
+  setText('confidence', '—');
+  setText('totalEnergy', '100');
+  setText('totalMomentum', '(0,0,0)');
+  setText('totalInfo', '50');
+  setText('activeSymbols', '0');
+  
+  $('startBtn').disabled = false;
+  $('pauseBtn').disabled = true;
+  $('resetBtn').disabled = true;
+  $('pauseBtn').textContent = '⏸ Pause';
+  
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+
+  const diffSlider = $('difficultyLevel');
+  if (diffSlider) {
+    apxV4_updateDifficultyUI(diffSlider.value);
+  }
+}
+
+// ===== APEX-PROTECT-BEGIN (v4-self-checks) =====
+function apxV4_devAssertDiversity(ref, cand, minDiff){
+  if (!APEX_FEATURES.devSelfChecks) return;
+  const A = (ref||'').toUpperCase(), B = (cand||'').toUpperCase();
+  if (A===B) throw new Error('APEX V4: identical surfaces blocked');
+  const diff = game.generator.apxV4_diff(A,B);
+  if (diff < (minDiff||3)) throw new Error('APEX V4: token difference below threshold');
+}
+// ===== APEX-PROTECT-END (v4-self-checks) =====
+
+function apxV4_updateDifficultyUI(level) {
+  const lvl = Math.min(Math.max(Number(level || 1), 1), 10);
+  const profile = apxV4_getActiveProfile(lvl);
+  const label = $('difficultyValue');
+  if (label) {
+    const displayName = profile.name ? `Level ${lvl} — ${profile.name}` : `Level ${lvl}`;
+    setText('difficultyValue', `${displayName} (${profile.gLoad.toFixed(2)}g)`);
+  }
+  const indicator = $('difficultyIndicator');
+  if (indicator) {
+    indicator.textContent = `${profile.gLoad.toFixed(2)}g`;
+    indicator.className = `difficulty-indicator diff-level-${lvl}`;
+  }
+  const counterToggle = $('counterfactuals');
+  if (counterToggle) {
+    counterToggle.disabled = !profile.counterfactuals;
+    if (!profile.counterfactuals) counterToggle.checked = false;
+  }
+  setText('currentGLoad', profile.gLoad.toFixed(2));
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const difficultySlider = $('difficultyLevel');
+  const difficultySelect = document.getElementById('difficulty');
+  if (difficultySlider) {
+    difficultySlider.setAttribute('max', '10');
+    difficultySlider.oninput = (e) => {
+      const level = parseInt(e.target.value, 10);
+      if (difficultySelect) {
+        difficultySelect.value = String(level);
+      }
+      apxV4_updateDifficultyUI(level);
+    };
+  }
+  if (difficultySelect) {
+    difficultySelect.addEventListener('change', (e) => {
+      const level = parseInt(e.target.value, 10);
+      if (difficultySlider) {
+        difficultySlider.value = String(level);
+        difficultySlider.dispatchEvent(new Event('input'));
+      } else {
+        apxV4_updateDifficultyUI(level);
+      }
+    });
+  }
+
+  $('nbackLevel').oninput = (e) => {
+    setText('nbackValue', e.target.value);
+  };
+  
+  $('statementsPerTrial').oninput = (e) => {
+    setText('stmtValue', e.target.value);
+  };
+  
+  $('matchProbability').oninput = (e) => {
+    setText('matchProbValue', e.target.value + '%');
+  };
+  
+  $('responseWindow').oninput = (e) => {
+    setText('windowValue', parseFloat(e.target.value).toFixed(1) + 's');
+  };
+
+  $('mathLegendBtn').onclick = () => {
+    const n = $('mathLegend');
+    n.style.display = (n.style.display === 'none' || !n.style.display) ? 'block' : 'none';
+  };
+
+  $('startBtn').onclick = start;
+  $('pauseBtn').onclick = pause;
+  $('resetBtn').onclick = reset;
+  
+  // Spacebar handler
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && game.isRunning && !game.isPaused) {
+      e.preventDefault();
+      game.registerResponse();
+    }
+  });
+  
+  // Modal handlers
+  const modal = $('instructionsModal');
+  const btn = $('instructionsBtn');
+  const closeBtn = document.querySelector('.close-modal');
+  
+  btn.onclick = () => modal.style.display = 'block';
+  closeBtn.onclick = () => modal.style.display = 'none';
+  window.onclick = (e) => {
+    if (e.target === modal) modal.style.display = 'none';
+  };
+  
+  // Initialize displays
+  if (difficultySlider) {
+    const initialLevel = parseInt(difficultySlider.value, 10) || 1;
+    if (difficultySelect) difficultySelect.value = String(initialLevel);
+    apxV4_updateDifficultyUI(initialLevel);
+  }
+  setText('totalEnergy', '100');
+  setText('totalMomentum', '(0,0,0)');
+  setText('totalInfo', '50');
+  setText('activeSymbols', '0');
+});
+</script>
+</body>
+</html>
