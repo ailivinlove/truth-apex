@@ -4773,6 +4773,274 @@ document.addEventListener('DOMContentLoaded', () => {
   setText('totalInfo', '50');
   setText('activeSymbols', '0');
 });
+
+// ===== APEX-PROTECT-BEGIN (v5-core) =====
+window.APEX_V5 = Object.freeze({
+  active: true,
+  safeHooks: true,
+  caseNormalize: true    // only applied inside v5 selectors; never alters stored strings
+});
+// ===== APEX-PROTECT-END (v5-core) =====
+
+// ===== APEX-PROTECT-BEGIN (v5-canonical-maps) =====
+window.apxV5_actionToOp = Object.freeze({
+  // base verbs already exist in your engine; we only add synonyms that map to them
+  "pushes":"PUSH","pulls":"PULL","merges":"MERGE","splits":"SPLIT",
+  "rotates":"ROTATE","oscillates":"OSCILLATE","transforms":"TRANSFORM","collides":"COLLIDE",
+
+  // synonyms (legible)
+  "nudges":"PUSH","shoves":"PUSH","presses":"PUSH","launches":"PUSH","guides":"PUSH","steers":"PUSH",
+  "slides":"PUSH","eases":"PUSH","propels":"PUSH","boosts":"PUSH",
+  "drags":"PULL","draws":"PULL","reels":"PULL","yanks":"PULL","tows":"PULL","hauls":"PULL","retrieves":"PULL","pulls-back":"PULL","pulls-in":"PULL","pulls-out":"PULL",
+  "tilts":"ROTATE","spins":"ROTATE","twists":"ROTATE","turns":"ROTATE","pivots":"ROTATE","rolls":"ROTATE","orbits":"ROTATE","swivels":"ROTATE","circles":"ROTATE","wheels":"ROTATE",
+  "aligns":"TRANSFORM","shapes":"TRANSFORM","molds":"TRANSFORM","remaps":"TRANSFORM","reframes":"TRANSFORM","resets":"TRANSFORM","balances":"TRANSFORM","tunes":"TRANSFORM","orders":"TRANSFORM","levels":"TRANSFORM",
+  "links":"MERGE","fuses":"MERGE","joins":"MERGE","binds":"MERGE","pairs":"MERGE","locks":"MERGE","mates":"MERGE","stitches":"MERGE","closes":"MERGE","unites":"MERGE",
+  "detaches":"SPLIT","severs":"SPLIT","breaks":"SPLIT","cuts":"SPLIT","splits-off":"SPLIT","peels":"SPLIT","separates":"SPLIT","sheds":"SPLIT","unhooks":"SPLIT","cleaves":"SPLIT",
+  "brakes":"INHIBIT","stalls":"INHIBIT","halts":"INHIBIT","hinders":"INHIBIT","blocks":"INHIBIT","damps":"DAMP","slows":"DAMP","mutes":"DAMP","softens":"DAMP","steadies":"DAMP",
+  "accelerates":"AMPLIFY","amplifies":"AMPLIFY","boosts-up":"AMPLIFY","charges":"AMPLIFY","energizes":"AMPLIFY","sharpens":"AMPLIFY","heightens":"AMPLIFY","speeds":"AMPLIFY","lifts":"AMPLIFY","ups":"AMPLIFY"
+});
+
+window.apxV5_connToRel = Object.freeze({
+  "toward":"TOWARD","into":"INTO",
+  // added
+  "onto":"ONTO","across":"ACROSS","along":"ALONG","around":"AROUND","past":"PAST","through":"THROUGH",
+  "between":"BETWEEN","beyond":"BEYOND","within":"WITHIN","near":"NEAR","beside":"BESIDE","against":"AGAINST",
+  "alongside":"ALONGSIDE","out-of":"OUT_OF","up-to":"UP_TO","inside":"WITHIN","outside":"OUT_OF",
+  "over":"OVER","under":"UNDER","from":"FROM","towards":"TOWARD","away-from":"AWAY_FROM","across-from":"ACROSS_FROM",
+  "by":"BY","via":"VIA","around-to":"AROUND_TO","next-to":"NEXT_TO"
+});
+
+window.apxV5_dirToVec = Object.freeze({
+  "upward":"UP","downward":"DOWN","leftward":"LEFT","rightward":"RIGHT",
+  // added
+  "forward":"FORWARD","backward":"BACK","inward":"IN","outward":"OUT",
+  "clockwise":"CW","counterclockwise":"CCW",
+  "north":"NORTH","south":"SOUTH","east":"EAST","west":"WEST",
+  "still":"ZERO",
+  "up-left":"UP_LEFT","up-right":"UP_RIGHT","down-left":"DOWN_LEFT","down-right":"DOWN_RIGHT",
+  "nearby":"ZERO","far":"OUT","centerward":"IN","edgeward":"OUT","ahead":"FORWARD","behind":"BACK"
+});
+// ===== APEX-PROTECT-END (v5-canonical-maps) =====
+
+// ===== APEX-PROTECT-BEGIN (v5-level-pools) =====
+(function(){
+  const L = {}; // level → {actions, conns, dirs}
+  // Helper to freeze arrays
+  const F = a => Object.freeze(a);
+
+  // Level 1 (new) — 10/10/10
+  L[1] = {
+    actions: F(["nudges","taps","guides","steers","slides","eases","presses","draws","tilts","aligns"]),
+    conns:   F(["onto","along","near","inside","outside","over","under","by","via","next-to"]),
+    dirs:    F(["forward","backward","inward","outward","still","north","south","east","west","ahead"])
+  };
+
+  // Level 2
+  L[2] = {
+    actions: F(["shoves","pulls-back","pulls-in","pulls-out","pivots","turns","rolls","joins","pairs","balances"]),
+    conns:   F(["through","across","around","between","beyond","against","alongside","out-of","up-to","towards"]),
+    dirs:    F(["up-left","up-right","down-left","down-right","clockwise","counterclockwise","centerward","edgeward","behind","nearby"])
+  };
+
+  // Level 3
+  L[3] = {
+    actions: F(["launches","propels","boosts","reels","yanks","tows","hauls","locks","stitches","levels"]),
+    conns:   F(["past","from","around-to","across-from","within","outside","beside","over","under","beyond"]),
+    dirs:    F(["forward","backward","inward","outward","north","south","east","west","still","ahead"])
+  };
+
+  // Level 4
+  L[4] = {
+    actions: F(["spins","twists","swivels","circles","orbits","molds","shapes","orders","remaps","reframes"]),
+    conns:   F(["onto","through","between","near","against","alongside","out-of","up-to","by","via"]),
+    dirs:    F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])
+  };
+
+  // Level 5
+  L[5] = {
+    actions: F(["binds","fuses","unites","mates","detaches","separates","severs","splits-off","peels","cleaves"]),
+    conns:   F(["along","around","past","beyond","within","inside","outside","beside","over","under"]),
+    dirs:    F(["forward","backward","inward","outward","north","south","east","west","still","nearby"])
+  };
+
+  // Level 6
+  L[6] = {
+    actions: F(["charges","energizes","amplifies","boosts-up","sharpens","heightens","steadies","mutes","softens","damps"]),
+    conns:   F(["across","through","between","against","alongside","out-of","up-to","from","towards","next-to"]),
+    dirs:    F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])
+  };
+
+  // Level 7
+  L[7] = {
+    actions: F(["accelerates","speeds","brakes","stalls","halts","hinders","blocks","retrieves","orders","resets"]),
+    conns:   F(["onto","along","around","past","beyond","within","beside","over","under","across-from"]),
+    dirs:    F(["forward","backward","inward","outward","north","south","east","west","still","far"])
+  };
+
+  // Level 8
+  L[8] = {
+    actions: F(["wheels","pivots","swivels","circles","rolls","levels","tunes","balances","reframes","remaps"]),
+    conns:   F(["through","between","near","against","alongside","out-of","up-to","from","via","by"]),
+    dirs:    F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])
+  };
+
+  // Level 9
+  L[9] = {
+    actions: F(["joins","pairs","links","fuses","binds","detaches","severs","splits-off","peels","cleaves"]),
+    conns:   F(["along","around","past","beyond","within","inside","outside","beside","over","under"]),
+    dirs:    F(["forward","backward","inward","outward","north","south","east","west","still","nearby"])
+  };
+
+  // Level 10
+  L[10] = {
+    actions: F(["amplifies","charges","energizes","sharpens","heightens","steadies","mutes","softens","damps","accelerates"]),
+    conns:   F(["across","through","between","against","alongside","out-of","up-to","across-from","around-to","next-to"]),
+    dirs:    F(["clockwise","counterclockwise","up-left","up-right","down-left","down-right","centerward","edgeward","ahead","behind"])
+  };
+
+  window.apxV5_LEVEL_POOLS = Object.freeze(L);
+})();
+// ===== APEX-PROTECT-END (v5-level-pools) =====
+
+// ===== APEX-PROTECT-BEGIN (v5-safe-selectors) =====
+(function(){
+  const U = (a,b) => {
+    const out = []; const seen = new Set();
+    (a||[]).concat(b||[]).forEach(t => { const s = String(t); if (!seen.has(s)) { seen.add(s); out.push(s); } });
+    return out;
+  };
+
+  function getLevel(){
+    try{
+      // adapt if your game stores level elsewhere; safe fallback = 1
+      return (window.game && Number(window.game.difficultyLevel)) || 1;
+    }catch(e){ return 1; }
+  }
+
+  function pool(base, add){
+    return U(base, add);
+  }
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  window.apxV5_pickVerb = function(canonicalOp){
+    const lvl = getLevel();
+    const add = (window.apxV5_LEVEL_POOLS?.[lvl]?.actions) || [];
+    const base = (window.DEFAULT_VERB_POOL || Object.keys(window.apxV5_actionToOp));
+    // prefer verbs mapping to canonicalOp if provided
+    let src = pool(base, add);
+    if (canonicalOp){
+      const filt = src.filter(w => window.apxV5_actionToOp[w] === canonicalOp || (window.ACTION_MAP && window.ACTION_MAP[w]===canonicalOp));
+      if (filt.length) src = filt;
+    }
+    return pick(src);
+  };
+
+  window.apxV5_pickConn = function(){
+    const lvl = getLevel();
+    const add = (window.apxV5_LEVEL_POOLS?.[lvl]?.conns) || [];
+    const base = (window.DEFAULT_REL_POOL || Object.keys(window.apxV5_connToRel));
+    return pick(pool(base, add));
+  };
+
+  window.apxV5_pickDir = function(canonicalVec){
+    const lvl = getLevel();
+    const add = (window.apxV5_LEVEL_POOLS?.[lvl]?.dirs) || [];
+    const base = (window.DEFAULT_TAIL_POOL || Object.keys(window.apxV5_dirToVec));
+    let src = pool(base, add);
+    if (canonicalVec){
+      const filt = src.filter(w => window.apxV5_dirToVec[w] === canonicalVec || (window.DIRECTION_MAP && window.DIRECTION_MAP[w]===canonicalVec));
+      if (filt.length) src = filt;
+    }
+    return pick(src);
+  };
+})();
+// ===== APEX-PROTECT-END (v5-safe-selectors) =====
+
+// ===== APEX-PROTECT-BEGIN (v5-generator-hook) =====
+(function(){
+  if (!window.CanonicalPremiseGenerator) return;
+
+  const proto = window.CanonicalPremiseGenerator.prototype;
+
+  // helper: keep five tokens, uppercase if policy says, but only for display—not storage
+  function normToken(s){
+    return (window.APEX_V5?.caseNormalize ? String(s).toUpperCase() : String(s));
+  }
+
+  // Wrap a safe surface selection that preserves canonical plan
+  proto.apxV5_selectSurface = function(canonPlan, gates){
+    // canonPlan: {op, rel, direction} — ok if any is null
+    const verb = normToken(window.apxV5_pickVerb(canonPlan?.op));
+    const rel  = normToken(window.apxV5_pickConn());
+    const dir  = normToken(window.apxV5_pickDir(canonPlan?.direction));
+    return { verb, relation: rel, tail: dir };
+  };
+
+  // If you already have a buildSurface step, use ours when present
+  if (!proto.buildSurface){
+    proto.buildSurface = function(canonPlan, gates){
+      return this.apxV5_selectSurface(canonPlan, gates);
+    };
+  }
+})();
+// ===== APEX-PROTECT-END (v5-generator-hook) =====
+
+// ===== APEX-PROTECT-BEGIN (v5-triple-guard) =====
+(function(){
+  if (!window.CanonicalPremiseGenerator) return;
+  const proto = window.CanonicalPremiseGenerator.prototype;
+  proto._apxV5_recentTriples = [];
+
+  proto._apxV5_markTriple = function(v,r,d){
+    const k = [v,r,d].join('|');
+    this._apxV5_recentTriples.push(k);
+    if (this._apxV5_recentTriples.length > 80) this._apxV5_recentTriples.shift();
+  };
+  proto._apxV5_seenTriple = function(v,r,d){
+    const k = [v,r,d].join('|'); return this._apxV5_recentTriples.includes(k);
+  };
+
+  const _oldSurface = proto.buildSurface;
+  proto.buildSurface = function(canonPlan, gates){
+    let s = _oldSurface.call(this, canonPlan, gates);
+    let tries = 0;
+    while (this._apxV5_seenTriple(s.verb, s.relation, s.tail) && tries < 40){
+      tries++;
+      s = this.apxV5_selectSurface(canonPlan, gates);
+    }
+    this._apxV5_markTriple(s.verb, s.relation, s.tail);
+    return s;
+  };
+})();
+// ===== APEX-PROTECT-END (v5-triple-guard) =====
+
+// ===== APEX-PROTECT-BEGIN (v5-match-resynthesis) =====
+(function(){
+  if (!window.CanonicalPremiseGenerator) return;
+  const proto = window.CanonicalPremiseGenerator.prototype;
+
+  // If you already have generateMatching(refIndex), wrap only the surface build:
+  const _oldGenMatch = proto.generateMatching;
+  if (_oldGenMatch){
+    proto.generateMatching = function(refIndex, registry){
+      const prem = _oldGenMatch.call(this, refIndex, registry);
+      // If _oldGenMatch already returns a canonical-equivalent surface, keep it.
+      // Otherwise, we reselect surface words from canonical plan:
+      const canon = prem?.canonical || this.getCanonicalPlanFrom(refIndex, registry);
+      const surface = this.buildSurface(canon, /* gates */ null);
+      // rewrite only the 3 tokens; keep SUBJECT/OBJECT exactly as your engine dictates
+      const tokens = prem.surfaceTokens || this.surfaceTokensFromCanonical(canon);
+      tokens[1] = surface.verb;     // VERB
+      tokens[3] = surface.relation; // REL
+      tokens[4] = surface.tail;     // DIRECTION
+      prem.surface = tokens.join(' ');
+      prem.surfaceTokens = tokens;
+      return prem;
+    };
+  }
+})();
+// ===== APEX-PROTECT-END (v5-match-resynthesis) =====
 </script>
 <!-- ===== APEX-PROTECT-BEGIN (v5-loader) ===== -->
 <script defer src="apex.v5-variety.js"></script>
